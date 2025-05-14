@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 21:26:46 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/14 22:30:18 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/14 23:45:43 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,6 +67,8 @@ bool	Config::load(const std::string &path)
 				std::cerr << RED << "Syntax error at line " << line_number << ": '" << line << "'" << RESET << std::endl;
 				return false;
 			}
+			if (!value.empty() && value[value.length() - 1] == ';')
+				value = value.substr(0, value.length() - 1);
 			this->_globals[key] = value;
 		}
 	}
@@ -153,6 +155,8 @@ bool	Config::parseServerBlock(std::ifstream &file, int &line_number)
 			std::cerr << RED << "Syntax error in server block at line " << line_number << ": '" << line << "'" << RESET << std::endl;
 			return false;
 		}
+		if (!value.empty() && value[value.length() - 1] == ';')
+			value = value.substr(0, value.length() - 1);
 		server_block[key] = value;
 	}
 
