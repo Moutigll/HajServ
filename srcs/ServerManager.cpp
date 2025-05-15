@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 23:24:48 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/15 01:13:18 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/15 17:31:34 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,8 +83,10 @@ void	ServerManager::runPollLoop()
 			if (!g_stop)
 				std::cerr << RED << "Poll error: " << strerror(errno) << RESET << std::endl;
 			else
+			{
 				std::cout << GREEN << "Exiting main poll loop..." << RESET << std::endl;
-			break;
+				break;
+			}
 		}
 
 		for (size_t i = 0; i < _pollFds.size(); ++i)
@@ -99,8 +101,14 @@ void	ServerManager::runPollLoop()
 				}
 
 				std::cout << CYAN << "New connection on socket: " << _pollFds[i].fd << " port: " << _servers[i].getPort() << RESET << std::endl;
-				std::string welcome_message = "Hello world from server <" + _servers[i].getServerName() + ">\n";
-				send(client_fd, welcome_message.c_str(), welcome_message.size(), 0);
+				Response response;
+				response.setStatusCode(200);
+				response.setHttpVersion("HTTP/1.1");
+				response.setHeaders("Content-Type: text/plain; charset=utf-8");
+				response.setBody("Blåhaj says Hello, World!\n");
+				std::string response_str = response.serialize();
+				ssize_t bytes_sent = send(client_fd, response_str.c_str(), response_str.size(), 0);
+				std::cout << CYAN << "Sent response to client: " << bytes_sent << " bytes" << RESET << std::endl;
 				close(client_fd);
 			}
 		}

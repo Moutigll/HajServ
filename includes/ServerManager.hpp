@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 23:23:37 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/15 01:21:44 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/15 17:02:32 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 # include <poll.h>
 # include <vector>
 
+# include "Response.hpp"
 # include "Server.hpp"
 # include "Utils.hpp"
 

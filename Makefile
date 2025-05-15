@@ -12,6 +12,7 @@ SRCS		:=	$(SRC_DIR)/main.cpp \
 				$(SRC_DIR)/Utils.cpp \
 				$(SRC_DIR)/ServerManager.cpp \
 				$(SRC_DIR)/Server.cpp \
+				$(SRC_DIR)/Response.cpp \
 
 OBJS		:= $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 
