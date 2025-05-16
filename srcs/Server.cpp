@@ -6,13 +6,13 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 22:40:14 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/15 01:35:02 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/16 07:31:19 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Server.hpp"
 
-Server::Server() : _host("127.0.0.1"), _port(8080), _server_name("default"), _socket_fd(-1) {}
+Server::Server() : _server_name("default"),_host("127.0.0.1"), _port(8080), _socket_fd(-1), _timeout(30), _maxBodySize(4200) {}
 
 Server::Server(const std::map<std::string, std::string> &config) : _socket_fd(-1)
 {
@@ -44,6 +44,16 @@ Server::Server(const std::map<std::string, std::string> &config) : _socket_fd(-1
 		std::cout << YELLOW << "WARNING: Server name not found, defaulting to: default" << RESET << std::endl;
 		this->_server_name = "default";
 	}
+	it = config.find("timeout");
+	if (it != config.end())
+		this->_timeout = std::atoi(it->second.c_str());
+	else
+		this->_timeout = 30;
+	it = config.find("maxBodySize");
+	if (it != config.end())
+		this->_maxBodySize = std::atoi(it->second.c_str());
+	else
+		this->_maxBodySize = 4200;
 }
 
 Server::Server(const Server &src)
@@ -59,6 +69,8 @@ Server &Server::operator=(const Server &src)
 		this->_port = src._port;
 		this->_server_name = src._server_name;
 		this->_socket_fd = src._socket_fd;
+		this->_timeout = src._timeout;
+		this->_maxBodySize = src._maxBodySize;
 	}
 	return *this;
 }
@@ -140,3 +152,5 @@ const std::string	&Server::getHost() const { return this->_host; }
 int					Server::getPort() const { return this->_port; }
 const std::string	&Server::getServerName() const { return this->_server_name; }
 int					Server::getSocketFd() const { return this->_socket_fd; }
+int					Server::getMaxBodySize() const { return this->_maxBodySize; }
+int					Server::getTimeout() const { return this->_timeout; }

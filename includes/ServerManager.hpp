@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 23:23:37 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/15 17:02:32 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/16 06:44:21 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 # include <poll.h>
 # include <vector>
 
-# include "Response.hpp"
+# include "Connection.hpp"
 # include "Server.hpp"
 # include "Utils.hpp"
 
@@ -34,8 +34,17 @@ class ServerManager
 	private:
 		std::vector<Server>			_servers;
 		std::vector<struct pollfd>	_pollFds;
+		std::map<int, Connection*>	_connections;
 
+		void	cleanupClosedConnections();
+		Server*	findServerByFd(int fd);
+		bool	isListeningSocket(int fd) const;
 		void	runPollLoop();
+		void	cleanup();
+		void	handleIoEvents();
+		void	acceptNewConnections(int listenFd);
+		void	markConnectionClosed(int fd, size_t index);
+		void	checkTimeouts();
 };
 
 #endif

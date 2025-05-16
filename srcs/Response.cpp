@@ -33,24 +33,17 @@ Response &Response::operator=(const Response &src)
 
 Response::~Response() {}
 
-void	Response::setStatusCode(int code)
-{
-	this->_statusCode = code;
-}
+void	Response::setStatusCode(int code) {this->_statusCode = code;}
+void	Response::setHttpVersion(const std::string &version) {this->_httpVersion = version;}
+void	Response::setHeaders(const std::string &headers) {this->_headers = headers;}
+void	Response::setBody(const std::string &body) {this->_body = body;}
 
-void	Response::setHttpVersion(const std::string &version)
+void	Response::addHeader(const std::string &key, const std::string &value)
 {
-	this->_httpVersion = version;
-}
-
-void	Response::setHeaders(const std::string &headers)
-{
-	this->_headers = headers;
-}
-
-void	Response::setBody(const std::string &body)
-{
-	this->_body = body;
+	if (this->_headers.empty())
+		this->_headers += key + ": " + value;
+	else
+		this->_headers += "\r\n" + key + ": " + value;
 }
 
 std::string	Response::serialize(void) const
@@ -63,6 +56,7 @@ std::string	Response::serialize(void) const
 	contentLengthStream << this->_body.length();
 	response += this->_httpVersion + " " + statusCodeStream.str() + "\r\n";
 	response += "Server: HajServ/1.0\r\n";
+	response += "Date: " + getHttpDate() + "\r\n";
 	response += "Content-Length: " + contentLengthStream.str() + "\r\n";
 	response += this->_headers + "\r\n\r\n";
 	response += this->_body;

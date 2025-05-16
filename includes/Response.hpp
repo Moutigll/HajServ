@@ -16,6 +16,8 @@
 #include <iostream>
 #include <sstream>
 
+#include "Utils.hpp"
+
 class Response
 {
 	public:
@@ -24,10 +26,11 @@ class Response
 		Response &operator=(const Response &src);
 		~Response();
 
-		void		setStatusCode(int code);
-		void		setHttpVersion(const std::string &version);
-		void		setHeaders(const std::string &headers);
-		void		setBody(const std::string &body);
+		void	setStatusCode(int code);
+		void	setHttpVersion(const std::string &version);
+		void	setHeaders(const std::string &headers);
+		void	setBody(const std::string &body);
+		void	addHeader(const std::string &key, const std::string &value);
 
 		std::string	serialize() const;	
 	private:
