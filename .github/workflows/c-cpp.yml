@@ -42,7 +42,7 @@ jobs:
       run: |
         valgrind --leak-check=full --show-leak-kinds=all --track-fds=yes \
           --log-file=valgrind.log \
-          ./webserv example.cfg > /webserv.log 2>&1 &
+          ./webserv example.cfg > ./webserv.log 2>&1 &
 
         server_pid=$!
         for i in $(seq 1 40); do
@@ -86,7 +86,7 @@ jobs:
       run: |
         valgrind --leak-check=full --show-leak-kinds=all --track-fds=yes \
           --log-file=valgrind_siege.log \
-          ./webserv example.cfg >> /webserv.log 2>&1 &
+          ./webserv example.cfg >> ./webserv.log 2>&1 &
       
         server_pid=$!
         for i in $(seq 1 40); do
