@@ -1,7 +1,8 @@
 import socket
 import concurrent.futures
+import os
 
-HOST = '127.0.0.1'
+HOST = '0.0.0.0'
 PORTS = [8080, 9090, 10000]
 TIMEOUT = 3
 
@@ -86,6 +87,9 @@ def main():
 
 		percentage = (passed_tests / total_tests) * 100 if total_tests > 0 else 0
 		print(f"\nSummary: Passed {passed_tests} / {total_tests} tests ({percentage:.2f}%)")
+		os.mkdir("results") if not os.path.exists("results") else None
+		with open("results/test_results.txt", "w") as f:
+			f.write(str(round(percentage)))
 
 if __name__ == "__main__":
 	main()

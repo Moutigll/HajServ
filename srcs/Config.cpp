@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 21:26:46 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/14 23:45:43 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/19 17:46:23 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -141,6 +141,27 @@ bool	Config::parseServerBlock(std::ifstream &file, int &line_number)
 		{
 			this->_servers.push_back(server_block);
 			return true;
+		} else if (line.rfind("location", 0) == 0)
+		{
+			Location location;
+
+			std::istringstream iss(line);
+			std::string keyword, path;
+
+			if (!(iss >> keyword >> path))
+			{
+				std::cerr << RED << "Syntax error: invalid location line at " << line_number << ": '" << line << "'" << RESET << std::endl;
+				return false;
+			}
+
+			if (!path.empty() && path[path.length() - 1] == '{')
+				path = path.substr(0, path.length() - 1);
+
+			location.setLocation(path);
+
+			if (!parseLocationBlock(file, line_number, location))
+				return false;
+			continue;
 		} else if (line == "server {")
 		{
 			std::cerr << RED << "Nested server block at line " << line_number << ": '" << line << "'" << RESET << std::endl;
@@ -164,4 +185,35 @@ bool	Config::parseServerBlock(std::ifstream &file, int &line_number)
 	return false;
 }
 
+bool	Config::parseLocationBlock(std::ifstream &file, int &line_number, Location &location)
+{
+	std::string line;
 
+	while (std::getline(file, line))
+	{
+		line_number++;
+		line = trim(line);
+
+		if (line.empty() || line[0] == '#')
+			continue;
+
+		if (line == "}")
+			return true;
+
+		std::istringstream iss(line);
+		std::string key, value;
+
+		if (!(iss >> key >> value) || (iss >> std::ws && !iss.eof()))
+		{
+			std::cerr << RED << "Syntax error in location block at line " << line_number << ": '" << line << "'" << RESET << std::endl;
+			return false;
+		}
+		if (!value.empty() && value[value.length() - 1] == ';')
+			value = value.substr(0, value.length() - 1);
+		if (key == "root")
+			location.setRoot(value);
+	}
+
+	std::cerr << RED << "Error: location block not closed properly before EOF" << RESET << std::endl;
+	return false;
+}

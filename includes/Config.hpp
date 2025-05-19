@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 21:20:52 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/14 22:19:27 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/19 15:58:29 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@
 
 
 # include "Colors.hpp"
+# include "Location.hpp"
 # include "Utils.hpp"
 
 
@@ -43,6 +44,7 @@ class Config
 		size_t	getServerCount() const;
 	private:
 		bool	parseServerBlock(std::ifstream &file, int &line_number);
+		bool	parseLocationBlock(std::ifstream &file, int &line_number, Location &location);
 
 		bool												_loaded;
 		std::map<std::string, std::string>					_globals;
