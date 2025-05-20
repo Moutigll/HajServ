@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 21:26:46 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/20 11:17:28 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 12:50:03 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,18 +81,18 @@ bool	Config::isLoaded() const
 	return this->_loaded;
 }
 
-void	Config::state() const
+void Config::state() const
 {
 	std::cout << GREEN << "[ Global Config ]" << RESET << std::endl;
 	for (std::map<std::string, std::string>::const_iterator it = _globals.begin(); it != _globals.end(); ++it)
-		std::cout << it->first << ": " << it->second << std::endl;
+		std::cout << PURPLE << it->first << RESET << ": " << GREEN << it->second << RESET << std::endl;
 
 	std::cout << GREEN << "\n[ Server Blocks ]" << RESET << std::endl;
 	for (size_t i = 0; i < _servers.size(); ++i)
 	{
 		std::cout << YELLOW << "Server " << i << RESET << std::endl;
 		for (std::map<std::string, std::string>::const_iterator it = _servers[i]._data.begin(); it != _servers[i]._data.end(); ++it)
-			std::cout << "  " << it->first << ": " << it->second << std::endl;
+			std::cout << "\t" << CYAN << it->first << RESET << ": " << GREEN << it->second << RESET << std::endl;
 
 		const std::vector<Location> &locations = _servers[i]._locations;
 		for (size_t j = 0; j < locations.size(); ++j)

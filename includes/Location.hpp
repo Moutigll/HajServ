@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 13:34:08 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/20 11:12:31 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 12:43:49 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,8 @@
 
 # include <string>
 # include <iostream>
+
+# include "Colors.hpp"
 
 class Location
 {

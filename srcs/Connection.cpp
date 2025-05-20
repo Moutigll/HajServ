@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/15 22:46:51 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/20 12:02:56 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 13:24:11 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -117,9 +117,16 @@ void	Connection::generateResponse()
 {
 	_response.setStatusCode(200);
 	_response.setHttpVersion(_request.getHttpVersion());
-	_response.setHeaders("Content-Type: text/plain; charset=utf-8");
 	_response.addHeader("Connection", _isKeepAlive ? "keep-alive" : "close");
-	_response.setBody("Blåhaj says Hello, World!\n");
+	if (_request.getMethod() == "GET")
+	{
+		_server->get(_response, _request.getUri());
+	}
+	else
+	{
+		_response.setStatusCode(405);
+		_response.setBody("405 Method Not Allowed\n");
+	}
 }
 
 bool Connection::writeResponse()

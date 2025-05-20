@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 22:40:14 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/20 11:58:20 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 14:49:52 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -58,6 +58,13 @@ Server::Server(const t_server &server) : _socket_fd(-1)
 		this->_maxBodySize = 4200;
 
 	this->_locations = server._locations;
+	if (this->_locations.empty())
+	{
+		std::cout << YELLOW << "WARNING: No locations found, defaulting to: /" << RESET << std::endl;
+		this->_locations.push_back(Location());
+		this->_locations.back().setLocation("/");
+		this->_locations.back().setRoot("./");
+	}
 }
 
 
@@ -76,6 +83,7 @@ Server &Server::operator=(const Server &src)
 		this->_socket_fd = src._socket_fd;
 		this->_timeout = src._timeout;
 		this->_maxBodySize = src._maxBodySize;
+		this->_locations = src._locations;
 	}
 	return *this;
 }
@@ -178,4 +186,55 @@ void Server::logConnection(int client_fd, const sockaddr_in &client_addr, int mo
 			  << " on server [" << this->_server_name << ":" << this->_port << "]"
 			  << " | fd=" << client_fd
 			  << RESET << std::endl;
+}
+
+const Location	*Server::matchLocation(const std::string &uri) const
+{
+	std::vector<Location>::const_iterator	it;
+	std::string								longest_match;
+	const Location							*best_match = NULL;
+
+	for (it = this->_locations.begin(); it != this->_locations.end(); ++it)
+	{
+		const std::string	&location_path = it->getLocation();
+		if (uri.find(location_path) == 0 && location_path.length() > longest_match.length())
+		{
+			longest_match = location_path;
+			best_match = &(*it);
+		}
+	}
+	return best_match;
+}
+
+void	Server::get(Response &response, const std::string &uri)
+{
+	const Location	*location = this->matchLocation(uri);
+
+	if (location)
+	{
+		std::string filepath = location->getRoot() + uri.substr(location->getLocation().length());
+
+		std::cout << "Requested file: " << filepath << std::endl;
+
+		std::ifstream	file(filepath.c_str());
+		if (!file.is_open())
+		{
+			response.setStatusCode(404);
+			response.setBody("404 Not Found");
+			return;
+		}
+
+		std::stringstream	buffer;
+		buffer << file.rdbuf();
+		file.close();
+
+		response.setStatusCode(200);
+		response.setBody(buffer.str());
+	}
+	else
+	{
+		std::cout << "No matching location found" << std::endl;
+		response.setStatusCode(404);
+		response.setBody("404 Not Found");
+	}
 }

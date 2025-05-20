@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 22:35:11 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/20 11:37:51 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 14:47:15 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,9 +22,11 @@
 # include <map>
 # include <netinet/in.h>
 # include <unistd.h>
+#include <fstream>
+#include <sstream>
 
-# include "Colors.hpp"
 # include "Config.hpp"
+# include "Response.hpp"
 
 class Server
 {
@@ -45,6 +47,10 @@ class Server
 		int					getPort() const;
 		int					getTimeout() const;
 		void				logConnection(int client_fd, const sockaddr_in &client_addr, int mode);
+
+		const Location	*matchLocation(const std::string &uri) const;
+		// Methods to handle requests and responses
+		void				get(Response &response, const std::string &path);
 
 	private:
 		std::string				_server_name;

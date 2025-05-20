@@ -6,18 +6,28 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 13:36:12 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/20 11:12:24 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 12:49:36 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Location.hpp"
 
-Location::Location() : _root("") {}
-Location::Location(const Location &src) : _root(src._root) {}
+Location::Location()
+{
+	_location = "";
+	_root = "";
+}
+Location::Location(const Location &src)
+{
+	*this = src;
+}
 Location &Location::operator=(const Location &src)
 {
 	if (this != &src)
+	{
 		_root = src._root;
+		_location = src._location;
+	}
 	return *this;
 }
 Location::~Location() {}
@@ -44,6 +54,6 @@ std::string Location::getLocation() const
 
 void Location::print() const
 {
-	std::cout << "Location: " << _location << std::endl;
-	std::cout << "Root: " << _root << std::endl;
+	std::cout << "\t" << PURPLE << "Location" << RESET << ": " << CYAN << _location << std::endl;
+	std::cout << "\t\t" << CYAN << "Root" << RESET << ": " << GREEN << _root << std::endl << std::endl;
 }

@@ -7,7 +7,7 @@ PORTS = [8080, 9090, 10000]
 TIMEOUT = 3
 
 REQUESTS = [
-	b"GET / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",                # 200 OK
+	b"GET /index.html HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",                # 200 OK
 	b"GET  HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",                # 400 Bad Request (malformed URI)
 	b"BADMETHOD / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",         # 400 Bad Request (invalid method)
 	b"GET / \r\nHost: localhost\r\nConnection: close\r\n\r\n",                       # 400 Bad Request (malformed request line)

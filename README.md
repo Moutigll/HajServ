@@ -1,6 +1,6 @@
 # 🌐 Webserv - HTTP Server in C++98
 ---
-
+[![CMake Build and Test with Valgrind and Siege](https://github.com/Moutigll/webserv/actions/workflows/c-cpp.yml/badge.svg)](https://github.com/Moutigll/webserv/actions/workflows/c-cpp.yml)
 ## Running the Server
 
 ### 1. Compile

@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 21:20:52 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/20 11:53:24 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 12:44:14 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,8 +20,6 @@
 # include <string>
 # include <vector>
 
-
-# include "Colors.hpp"
 # include "Location.hpp"
 # include "Utils.hpp"
 typedef struct s_server
