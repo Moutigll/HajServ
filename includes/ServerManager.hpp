@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 23:23:37 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/16 06:44:21 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 11:19:24 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 # include <vector>
 
 # include "Connection.hpp"
+# include "Config.hpp"
 # include "Server.hpp"
 # include "Utils.hpp"
 
@@ -28,7 +29,7 @@ class ServerManager
 		ServerManager &operator=(const ServerManager &src);
 		~ServerManager();
 
-		void	addServer(const std::map<std::string, std::string> &config);
+		void	addServer(const t_server &server);
 		void	startServers();
 
 	private:

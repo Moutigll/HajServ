@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 23:24:48 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/16 07:45:30 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 11:50:40 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,10 +28,10 @@ ServerManager &ServerManager::operator=(const ServerManager &src)
 
 ServerManager::~ServerManager() {}
 
-void	ServerManager::addServer(const std::map<std::string, std::string> &config)
+void	ServerManager::addServer(const t_server &server)
 {
-	Server server(config);
-	this->_servers.push_back(server);
+	Server newServer(server);
+	_servers.push_back(newServer);
 }
 
 Server*	ServerManager::findServerByFd(int fd)
@@ -78,14 +78,12 @@ void	ServerManager::cleanupClosedConnections()
 		}
 		delete _connections[fd];
 		_connections.erase(fd);
-		std::cout << RED << "Closed connection: " << fd << RESET << std::endl;
 	}
 }
 
 void	ServerManager::cleanup() {
 	for (std::map<int, Connection*>::iterator it = this->_connections.begin(); it != this->_connections.end(); ++it) {
 		close(it->first);
-		std::cout << RED << "Closed connection: " << it->first << RESET << std::endl;
 		delete it->second;
 	}
 	this->_connections.clear();
@@ -176,9 +174,12 @@ void ServerManager::runPollLoop()
  */
 void ServerManager::acceptNewConnections(int listenFd)
 {
+	sockaddr_in client_addr;
+	socklen_t client_len = sizeof(client_addr);
+
 	while (true)
 	{
-		int clientFd = accept(listenFd, NULL, NULL);
+		int clientFd = accept(listenFd, (sockaddr*)&client_addr, &client_len);
 		if (clientFd < 0)
 		{
 			if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -186,7 +187,7 @@ void ServerManager::acceptNewConnections(int listenFd)
 			std::cerr << RED << "Accept error: " << strerror(errno) << RESET << std::endl;
 			break;
 		}
-		// passe en non-bloquant
+
 		int flags = fcntl(clientFd, F_GETFL, 0);
 		fcntl(clientFd, F_SETFL, flags | O_NONBLOCK);
 
@@ -198,13 +199,13 @@ void ServerManager::acceptNewConnections(int listenFd)
 			continue;
 		}
 
-		Connection* conn = new Connection(clientFd, srv);
+		Connection* conn = new Connection(clientFd, srv, client_addr);
 		_connections[clientFd] = conn;
 
 		struct pollfd pfd = { clientFd, POLLIN, 0 };
 		_pollFds.push_back(pfd);
 
-		std::cout << CYAN << "Accepted new connection: " << clientFd << RESET << std::endl;
+		srv->logConnection(clientFd, client_addr, 1);
 	}
 }
 
@@ -259,7 +260,6 @@ void ServerManager::markConnectionClosed(int fd, size_t pollIndex)
 	delete _connections[fd];
 	_connections.erase(fd);
 	_pollFds.erase(_pollFds.begin() + pollIndex);
-	std::cout << RED << "Closed connection: " << fd << RESET << std::endl;
 }
 
 /*

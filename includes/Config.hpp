@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 21:20:52 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/19 15:58:29 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 11:53:24 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,8 +24,11 @@
 # include "Colors.hpp"
 # include "Location.hpp"
 # include "Utils.hpp"
-
-
+typedef struct s_server
+{
+	std::map<std::string, std::string>	_data;
+	std::vector<Location>				_locations;
+}	t_server;
 class Config
 {
 	public:
@@ -38,8 +41,8 @@ class Config
 		bool	isLoaded() const;
 		void	state() const;
 
-		const std::string							&getGlobal(const std::string &key) const;
-		const std::map<std::string, std::string>	&getServerBlock(size_t index) const;
+		const std::string	&getGlobal(const std::string &key) const;
+		const t_server		&getServerBlock(size_t index) const;
 
 		size_t	getServerCount() const;
 	private:
@@ -48,7 +51,9 @@ class Config
 
 		bool												_loaded;
 		std::map<std::string, std::string>					_globals;
-		std::vector<std::map<std::string, std::string> >	_servers;
+		std::vector<t_server>								_servers;
 };
+
+extern Config g_config;
 
 #endif

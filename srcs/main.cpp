@@ -6,12 +6,14 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 21:21:00 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/15 01:33:05 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 11:41:02 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Config.hpp"
 #include "../includes/ServerManager.hpp"
+
+Config	g_config;
 
 int	main(int argc, char **argv)
 {
@@ -36,17 +38,18 @@ int	main(int argc, char **argv)
 	else
 		path = "default.conf";
 
-	Config	cfg;
-	if (!cfg.load(path))
+	if (!g_config.load(path))
 	{
 		std::cerr << RED << "Failed to load config file: " << path << RESET << std::endl;
 		return 1;
 	}
 	std::cout << GREEN << "Config file loaded successfully!" << RESET << std::endl;
+	if (g_config.getGlobal("log_level") == "debug")
+		g_config.state();
 	ServerManager	manager;
 
-	for (size_t i = 0; i < cfg.getServerCount(); i++)
-		manager.addServer(cfg.getServerBlock(i));
+	for (size_t i = 0; i < g_config.getServerCount(); i++)
+		manager.addServer(g_config.getServerBlock(i));
 
 	manager.startServers();
 

@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/15 22:45:38 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/16 06:53:22 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 11:48:52 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@
 class Connection
 {
 	public:
-		Connection(int fd, Server *server);
+		Connection(int fd, Server *server, const sockaddr_in &clientAddr);
 		~Connection();
 
 		bool	readRequest();
@@ -48,6 +48,7 @@ class Connection
 		std::string	_rawRequest;
 		std::string	_rawResponse;
 		size_t		_bytesWritten;
+		sockaddr_in	_clientAddr;
 
 		bool		parseRequest(const std::string &raw);
 		void		generateResponse();

@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/19 13:36:12 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/19 15:55:15 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 11:12:24 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,4 +40,10 @@ std::string Location::getRoot() const
 std::string Location::getLocation() const
 {
 	return _location;
+}
+
+void Location::print() const
+{
+	std::cout << "Location: " << _location << std::endl;
+	std::cout << "Root: " << _root << std::endl;
 }

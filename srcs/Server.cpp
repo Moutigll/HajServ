@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 22:40:14 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/16 07:31:19 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 11:58:20 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,12 +14,12 @@
 
 Server::Server() : _server_name("default"),_host("127.0.0.1"), _port(8080), _socket_fd(-1), _timeout(30), _maxBodySize(4200) {}
 
-Server::Server(const std::map<std::string, std::string> &config) : _socket_fd(-1)
+Server::Server(const t_server &server) : _socket_fd(-1)
 {
 	std::map<std::string, std::string>::const_iterator it;
 
-	it = config.find("host");
-	if (it != config.end())
+	it = server._data.find("host");
+	if (it != server._data.end())
 		this->_host = it->second;
 	else
 	{
@@ -27,8 +27,8 @@ Server::Server(const std::map<std::string, std::string> &config) : _socket_fd(-1
 		this->_host = "127.0.0.1";
 	}
 
-	it = config.find("listen");
-	if (it != config.end())
+	it = server._data.find("listen");
+	if (it != server._data.end())
 		this->_port = std::atoi(it->second.c_str());
 	else
 	{
@@ -36,25 +36,30 @@ Server::Server(const std::map<std::string, std::string> &config) : _socket_fd(-1
 		this->_port = 8080;
 	}
 
-	it = config.find("server_name");
-	if (it != config.end())
+	it = server._data.find("server_name");
+	if (it != server._data.end())
 		this->_server_name = it->second;
 	else
 	{
 		std::cout << YELLOW << "WARNING: Server name not found, defaulting to: default" << RESET << std::endl;
 		this->_server_name = "default";
 	}
-	it = config.find("timeout");
-	if (it != config.end())
+
+	it = server._data.find("timeout");
+	if (it != server._data.end())
 		this->_timeout = std::atoi(it->second.c_str());
 	else
 		this->_timeout = 30;
-	it = config.find("maxBodySize");
-	if (it != config.end())
+
+	it = server._data.find("maxBodySize");
+	if (it != server._data.end())
 		this->_maxBodySize = std::atoi(it->second.c_str());
 	else
 		this->_maxBodySize = 4200;
+
+	this->_locations = server._locations;
 }
+
 
 Server::Server(const Server &src)
 {
@@ -154,3 +159,23 @@ const std::string	&Server::getServerName() const { return this->_server_name; }
 int					Server::getSocketFd() const { return this->_socket_fd; }
 int					Server::getMaxBodySize() const { return this->_maxBodySize; }
 int					Server::getTimeout() const { return this->_timeout; }
+
+void Server::logConnection(int client_fd, const sockaddr_in &client_addr, int mode)
+{
+	if (g_config.getGlobal("log_connections") != "true")
+		return;
+	char client_ip[INET_ADDRSTRLEN];
+	inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
+
+	std::cout << YELLOW << getTimestamp();
+
+	if (mode == 1)
+		std::cout << GREEN << " ➡️  New Connection from "; 
+	else
+		std::cout << RED << " ⬅️  Connection Closed from ";
+
+	std::cout << client_ip << ":" << ntohs(client_addr.sin_port)
+			  << " on server [" << this->_server_name << ":" << this->_port << "]"
+			  << " | fd=" << client_fd
+			  << RESET << std::endl;
+}

@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 22:15:37 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/16 05:43:16 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 11:37:09 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,4 +73,21 @@ std::string getHttpDate()
 	if (std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", gmt))
 		return std::string(buf);
 	return std::string();
+}
+
+std::string	getTimestamp()
+{
+	std::time_t	now = std::time(0);
+	std::tm		*ltm = std::localtime(&now);
+	std::ostringstream oss;
+
+	oss << std::setfill('0') << "[" 
+		<< 1900 + ltm->tm_year << "-"
+		<< std::setw(2) << 1 + ltm->tm_mon << "-"
+		<< std::setw(2) << ltm->tm_mday << " "
+		<< std::setw(2) << ltm->tm_hour << ":"
+		<< std::setw(2) << ltm->tm_min << ":"
+		<< std::setw(2) << ltm->tm_sec << "]";
+
+	return oss.str();
 }

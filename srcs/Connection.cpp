@@ -6,15 +6,14 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/15 22:46:51 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/16 07:35:00 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 12:02:56 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Connection.hpp"
 
-
-Connection::Connection(int fd, Server *server)
-	: _fd(fd), _server(server), _isKeepAlive(false)
+Connection::Connection(int fd, Server *server, const sockaddr_in &clientAddr)
+	: _fd(fd), _server(server), _isKeepAlive(false), _clientAddr(clientAddr)
 {
 	_lastActivity = std::time(NULL);
 	_requestComplete = false;
@@ -31,6 +30,7 @@ Connection::~Connection()
 		close(_fd);
 		_fd = -1;
 	}
+	_server->logConnection(_fd, _clientAddr, 0);
 }
 
 int	Connection::getFd() const {return (_fd);}
@@ -77,6 +77,8 @@ bool	Connection::parseRequest(const std::string &raw)
 	HttpCode	reqStatus;
 	
 	reqStatus = _request.parseRequest(raw);
+	if (g_config.getGlobal("log_requests") == "true")
+		_request.logRequest();
 	if (reqStatus.getCode() != 200)
 	{
 		_response.setStatusCode(reqStatus.getCode());
@@ -87,8 +89,6 @@ bool	Connection::parseRequest(const std::string &raw)
 		_isKeepAlive = false;
 		return (true);
 	}
-
-	_request.logRequest();
 
 	std::string	connection_header = "";
 	if (_request.hasHeader("Connection"))

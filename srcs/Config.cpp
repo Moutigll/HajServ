@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 21:26:46 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/19 17:46:23 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 11:17:28 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,22 +83,20 @@ bool	Config::isLoaded() const
 
 void	Config::state() const
 {
-	std::map<std::string, std::string>::const_iterator it = this->_globals.begin();
-	while (it != this->_globals.end())
-	{
+	std::cout << GREEN << "[ Global Config ]" << RESET << std::endl;
+	for (std::map<std::string, std::string>::const_iterator it = _globals.begin(); it != _globals.end(); ++it)
 		std::cout << it->first << ": " << it->second << std::endl;
-		it++;
-	}
 
-	for (size_t i = 0; i < this->_servers.size(); i++)
+	std::cout << GREEN << "\n[ Server Blocks ]" << RESET << std::endl;
+	for (size_t i = 0; i < _servers.size(); ++i)
 	{
-		std::cout << std::endl << "Server block " << i << ":\n";
-		std::map<std::string, std::string>::const_iterator it2 = this->_servers[i].begin();
-		while (it2 != this->_servers[i].end())
-		{
-			std::cout << it2->first << ": " << it2->second << std::endl;
-			it2++;
-		}
+		std::cout << YELLOW << "Server " << i << RESET << std::endl;
+		for (std::map<std::string, std::string>::const_iterator it = _servers[i]._data.begin(); it != _servers[i]._data.end(); ++it)
+			std::cout << "  " << it->first << ": " << it->second << std::endl;
+
+		const std::vector<Location> &locations = _servers[i]._locations;
+		for (size_t j = 0; j < locations.size(); ++j)
+			locations[j].print();
 	}
 }
 
@@ -111,12 +109,12 @@ const std::string &Config::getGlobal(const std::string &key) const
 	return empty;
 }
 
-const std::map<std::string, std::string> &Config::getServerBlock(size_t index) const
+const t_server &Config::getServerBlock(size_t index) const
 {
 	if (index < this->_servers.size())
 		return this->_servers[index];
-	static const std::map<std::string, std::string> empty_map;
-	return empty_map;
+	static const t_server empty_server;
+	return empty_server;
 }
 
 size_t	Config::getServerCount() const
@@ -127,7 +125,7 @@ size_t	Config::getServerCount() const
 bool	Config::parseServerBlock(std::ifstream &file, int &line_number)
 {
 	std::string line;
-	std::map<std::string, std::string> server_block;
+	t_server server;
 
 	while (std::getline(file, line))
 	{
@@ -139,12 +137,12 @@ bool	Config::parseServerBlock(std::ifstream &file, int &line_number)
 
 		if (line == "}")
 		{
-			this->_servers.push_back(server_block);
+			this->_servers.push_back(server);
 			return true;
-		} else if (line.rfind("location", 0) == 0)
+		}
+		else if (line.rfind("location", 0) == 0)
 		{
 			Location location;
-
 			std::istringstream iss(line);
 			std::string keyword, path;
 
@@ -153,7 +151,6 @@ bool	Config::parseServerBlock(std::ifstream &file, int &line_number)
 				std::cerr << RED << "Syntax error: invalid location line at " << line_number << ": '" << line << "'" << RESET << std::endl;
 				return false;
 			}
-
 			if (!path.empty() && path[path.length() - 1] == '{')
 				path = path.substr(0, path.length() - 1);
 
@@ -161,8 +158,11 @@ bool	Config::parseServerBlock(std::ifstream &file, int &line_number)
 
 			if (!parseLocationBlock(file, line_number, location))
 				return false;
+
+			server._locations.push_back(location);
 			continue;
-		} else if (line == "server {")
+		}
+		else if (line == "server {")
 		{
 			std::cerr << RED << "Nested server block at line " << line_number << ": '" << line << "'" << RESET << std::endl;
 			return false;
@@ -178,7 +178,7 @@ bool	Config::parseServerBlock(std::ifstream &file, int &line_number)
 		}
 		if (!value.empty() && value[value.length() - 1] == ';')
 			value = value.substr(0, value.length() - 1);
-		server_block[key] = value;
+		server._data[key] = value;
 	}
 
 	std::cerr << RED << "Error: server block not closed properly before EOF" << RESET << std::endl;
