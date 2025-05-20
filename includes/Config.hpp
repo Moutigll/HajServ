@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Config.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 21:20:52 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/20 12:44:14 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/20 15:47:30 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,8 @@ typedef struct s_server
 {
 	std::map<std::string, std::string>	_data;
 	std::vector<Location>				_locations;
+	std::map<int, std::string>			_errors;
+	std::string							_root_error;
 }	t_server;
 class Config
 {
@@ -46,6 +48,7 @@ class Config
 	private:
 		bool	parseServerBlock(std::ifstream &file, int &line_number);
 		bool	parseLocationBlock(std::ifstream &file, int &line_number, Location &location);
+		bool	parseErrorBlock(std::ifstream &file, int &line_number, t_server &server);
 
 		bool												_loaded;
 		std::map<std::string, std::string>					_globals;
