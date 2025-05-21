@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:50 by etaquet           #+#    #+#             */
-/*   Updated: 2025/05/21 15:24:18 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/05/21 23:58:20 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,12 +27,5 @@ int main(int argc, char **argv)
         return (1);
     }
     std::cout << GREEN << "Config file loaded successfully." << RESET << std::endl;
-    std::cout << CYAN << "Server blocks:" << RESET << std::endl;
-    for (size_t i = 0; i < 3; ++i)
-    {
-        const t_server &server = config.getServerBlock(i);
-        std::cout << server._data.at("server_name") << std::endl;
-        std::cout << server._error_pages.at(404) << std::endl;
-    }
     return (0);
 }
