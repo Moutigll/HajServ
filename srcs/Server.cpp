@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/14 22:40:14 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/20 15:34:33 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/05/21 12:15:26 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -213,8 +213,6 @@ void	Server::get(Response &response, const std::string &uri)
 	if (location)
 	{
 		std::string filepath = location->getRoot() + uri.substr(location->getLocation().length());
-
-		std::cout << "Requested file: " << filepath << std::endl;
 
 		std::ifstream	file(filepath.c_str());
 		if (!file.is_open())

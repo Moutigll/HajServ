@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/15 17:43:10 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/20 12:02:18 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/05/21 12:29:21 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,40 +64,104 @@ HttpCode	Request::parseRequest(std::string const &raw_request)
 	return (HttpCode(200));
 }
 
+static bool	is_hex_digit(char c)
+{
+	return ((c >= '0' && c <= '9')
+		|| (c >= 'a' && c <= 'f')
+		|| (c >= 'A' && c <= 'F'));
+}
+
+static char	hex_to_char(char high, char low)
+{
+	int	value = 0;
+
+	if (high >= '0' && high <= '9')
+		value += (high - '0') << 4;
+	else if (high >= 'A' && high <= 'F')
+		value += (high - 'A' + 10) << 4;
+	else if (high >= 'a' && high <= 'f')
+		value += (high - 'a' + 10) << 4;
+
+	if (low >= '0' && low <= '9')
+		value += (low - '0');
+	else if (low >= 'A' && low <= 'F')
+		value += (low - 'A' + 10);
+	else if (low >= 'a' && low <= 'f')
+		value += (low - 'a' + 10);
+
+	return static_cast<char>(value);
+}
+
+static bool	decode_percent_encoding(const std::string &input, std::string &output)
+{
+	size_t i = 0;
+	output.clear();
+
+	while (i < input.size())
+	{
+		if (input[i] == '%')
+		{
+			if (i + 2 >= input.size()
+				|| !is_hex_digit(input[i + 1])
+				|| !is_hex_digit(input[i + 2]))
+				return false;
+			output += hex_to_char(input[i + 1], input[i + 2]);
+			i += 3;
+		}
+		else
+		{
+			output += input[i];
+			i++;
+		}
+	}
+	return true;
+}
+
 static bool	is_valid_uri_char(char c)
 {
 	if (std::isalnum(static_cast<unsigned char>(c)))
-		return (true);
-	if (c == '-' || c == '_' || c == '.' || c == '/' || c == '~'
-		|| c == '%' || c == '?' || c == '&' || c == '=')
-		return (true);
-	return (false);
+		return true;
+	switch (c)
+	{
+		case '-': case '_': case '.': case '/': case '~':
+		case '%': case '?': case '&': case '=':
+			return true;
+		default:
+			return false;
+	}
 }
 
 static bool	validate_uri(const std::string &uri)
 {
-	size_t	i;
+	std::string decoded;
 
 	if (uri.empty() || uri[0] != '/')
-		return (false);
-	i = 0;
-	while (i < uri.size())
+		return false;
+	for (size_t i = 0; i < uri.size(); ++i)
 	{
 		if (!is_valid_uri_char(uri[i]))
-			return (false);
-		i++;
+			return false;
 	}
-	return (true);
+	if (!decode_percent_encoding(uri, decoded))
+		return false;
+	if (decoded.find("..") != std::string::npos)
+		return false;
+	if (decoded.find('\\') != std::string::npos)
+		return false;
+	if (decoded.find('\0') != std::string::npos)
+		return false;
+	if (decoded.find("//") != std::string::npos)
+		return false;
+
+	return true;
 }
 
-static bool isInArray(const char *arr[], size_t size, const std::string &val)
+static bool	is_in_array(const char *arr[], size_t size, const std::string &val)
 {
-	size_t i = 0;
-	while (i < size)
+	for (size_t i = 0; i < size; ++i)
 	{
 		if (val == arr[i])
 			return true;
-		i++;
 	}
 	return false;
 }
@@ -108,7 +172,7 @@ HttpCode Request::parseRequestLine(std::istringstream &stream)
 	std::istringstream ls;
 
 	if (!std::getline(stream, line) || line.empty())
-		return (HttpCode(400));
+		return HttpCode(400);
 	if (line[line.size() - 1] == '\r')
 		line.erase(line.size() - 1);
 
@@ -119,40 +183,43 @@ HttpCode Request::parseRequestLine(std::istringstream &stream)
 		|| _method.empty()
 		|| _uri.empty()
 		|| _httpVersion.empty())
-		return (HttpCode(400));
+		return HttpCode(400);
 
-	if (_httpVersion != "HTTP/1.0"
-		&& _httpVersion != "HTTP/1.1")
-		return (HttpCode(505)); // HTTP Version Not Supported
+	if (_httpVersion != "HTTP/1.0" && _httpVersion != "HTTP/1.1")
+		return HttpCode(505);
 
 	const char *validMethods[] = {
 		"GET", "HEAD", "POST",
 		"PUT", "DELETE", "CONNECT",
-		"OPTIONS", "TRACE", "PATCH"};
-	const size_t validMethodsSize = sizeof(validMethods) / sizeof(validMethods[0]);
-	const char *allowedMethods[] = {
-		"GET"
+		"OPTIONS", "TRACE", "PATCH"
 	};
+	const size_t validMethodsSize = sizeof(validMethods) / sizeof(validMethods[0]);
+	const char *allowedMethods[] = {"GET"};
 	const size_t allowedMethodsSize = sizeof(allowedMethods) / sizeof(allowedMethods[0]);
-	const char *notImplementedMethods[] = {
-		"POST", "PUT", "DELETE"};
+	const char *notImplementedMethods[] = {"POST", "PUT", "DELETE"};
 	const size_t notImplementedMethodsSize = sizeof(notImplementedMethods) / sizeof(notImplementedMethods[0]);
 
-	if (!isInArray(validMethods, validMethodsSize, _method))
-		return (HttpCode(400)); // method unknown -> 400 Bad Request
+	if (!is_in_array(validMethods, validMethodsSize, _method))
+		return HttpCode(400);
 
-	if (!isInArray(allowedMethods, allowedMethodsSize, _method))
+	if (!is_in_array(allowedMethods, allowedMethodsSize, _method))
 	{
-		if (isInArray(notImplementedMethods, notImplementedMethodsSize, _method))
-			return (HttpCode(501)); // method known but not implemented
+		if (is_in_array(notImplementedMethods, notImplementedMethodsSize, _method))
+			return HttpCode(501);
 		else
-			return (HttpCode(405)); // method known but not allowed
+			return HttpCode(405);
 	}
 
 	if (!validate_uri(_uri))
-		return (HttpCode(400));
+	return HttpCode(400);
 
-	return (HttpCode(200));
+	std::string	decoded_uri;
+	if (!decode_percent_encoding(_uri, decoded_uri))
+		return HttpCode(400);
+
+	_uri = decoded_uri;
+
+	return HttpCode(200);
 }
 
 HttpCode Request::parseHeaders(std::istringstream &stream)
