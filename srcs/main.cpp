@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:50 by etaquet           #+#    #+#             */
-/*   Updated: 2025/05/30 15:09:18 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/05/30 20:01:13 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,5 @@ int main(int argc, char **argv)
 		std::cerr << RED << "Failed to parse config file." << RESET << std::endl;
 		return 1;
 	}
-
 	return 0;
 }

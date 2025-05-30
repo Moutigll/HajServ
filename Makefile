@@ -1,7 +1,7 @@
 NAME		:= webserv
 
 CC			:= c++
-CFLAGS		:= -std=c++98 -g
+CFLAGS		:= -Wall -Werror -Wextra -std=c++98 -g
 
 SRC_DIR		:= srcs
 INC_DIR		:= includes
@@ -9,7 +9,6 @@ OBJ_DIR		:= obj
 
 SRCS		:=	$(SRC_DIR)/main.cpp \
 				$(SRC_DIR)/Config.cpp \
-				$(SRC_DIR)/Location.cpp \
 				$(SRC_DIR)/Utils.cpp \
 				$(SRC_DIR)/HttpError.cpp
 
