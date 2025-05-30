@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/23 04:01:24 by etaquet           #+#    #+#             */
-/*   Updated: 2025/05/30 14:55:10 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/05/30 17:53:40 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 #include "Utils.hpp"
 #include "Location.hpp"
+#include <vector>
 
 class Location;
 
@@ -28,6 +29,7 @@ typedef struct s_servers
 {
 	std::vector<std::string>			_methods;
 	std::vector<std::string>			_names;
+	std::vector<std::string>			_indexes;
 	std::map<std::string, std::string>	_data;
 	t_errors							_errors;
 	std::vector<Location>				_locations;
@@ -41,7 +43,11 @@ class Config
 		Config & operator=(Config const & );
 		~Config();
 		bool	parse(const std::string &filename);
-		bool	GetGlobals(std::string &line, int &line_number);
+		bool	parseGlobals(std::string &line, int &line_number);
+		bool	parseServer(std::ifstream &file, int &line_number);
+		bool	parseLocation(std::string &line, int &line_number);
+		bool	parseErrors(std::string &line, int &line_number);
+		bool	parseVectors(std::string &line, int &line_number, t_servers &server);
 	private:
 		bool					_finished;
 		bool					_log_connections;
