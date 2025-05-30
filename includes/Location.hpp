@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 23:49:57 by etaquet           #+#    #+#             */
-/*   Updated: 2025/05/21 23:55:52 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/05/30 14:17:47 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,29 +17,19 @@
 
 class Location
 {
-    private:
-        std::string _root;
-        std::string _index;
-        std::string _cgi_path;
-        std::string _cgi_ext;
-        bool _autoindex;
-    public:
-        Location();
-        Location( const Location & );
-        Location &operator=( const Location & );
-        ~Location();
-
-        void setRoot( const std::string &root );
-        void setIndex( const std::string &index );
-        void setCgiPath( const std::string &cgi_path );
-        void setCgiExt( const std::string &cgi_ext );
-        void setAutoindex( bool autoindex );
-
-        const std::string &getRoot() const;
-        const std::string &getIndex() const;
-        const std::string &getCgiPath() const;
-        const std::string &getCgiExt() const;
-        bool getAutoindex() const;
+	private:
+		std::string							_path;
+		std::map<std::string, std::string>	_loc_data;
+		int									_return_code;
+		std::string							_return_uri;
+		bool								_autoindex;
+		std::vector<std::string>			_methods;
+		std::vector<std::string>			_try_files;
+	public:
+		Location();
+		Location( const Location & );
+		Location &operator=( const Location & );
+		~Location();
 };
 
 #endif

@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/23 04:01:24 by etaquet           #+#    #+#             */
-/*   Updated: 2025/05/23 04:34:47 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/05/30 14:55:10 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,57 +14,40 @@
 #define CONFIG_HPP
 
 #include "Utils.hpp"
+#include "Location.hpp"
 
-typedef struct s_location {
-	std::string path;
-	std::string root;
-	std::vector<std::string> index;
-	std::string alias;
-	std::vector<std::string> try_files;
-	int return_code;
-	std::string return_url;
-	bool autoindex;
-	std::vector<std::string> allowed_methods;
-	std::string cgi_pass;
+class Location;
 
-	s_location() : return_code(0), autoindex(false) {}
-}	t_location;
+typedef struct s_errors
+{
+	std::map<int, std::string>	_errors;
+	std::string					_root_error;
+}	t_errors;
 
-typedef struct s_server {
-	std::vector<std::string> server_name;
-	std::string listen;
-	int timeout;
-	std::vector<std::string> allowed_methods;
-	std::map<int, std::string> error_pages;
-	std::string root;
-	std::vector<std::string> index;
-	long client_max_body_size;
-	std::string access_log;
-	std::string error_log;
-	std::vector<t_location> locations;
+typedef struct s_servers
+{
+	std::vector<std::string>			_methods;
+	std::vector<std::string>			_names;
+	std::map<std::string, std::string>	_data;
+	t_errors							_errors;
+	std::vector<Location>				_locations;
+}	t_servers;
 
-	s_server() : timeout(0), client_max_body_size(0) {}
-}	t_server;
-
-class Config {
+class Config
+{
 	public:
-		bool parse(const std::string &filename);
-		const std::vector<t_server>& getServers() const;
-		const t_server& getServer(size_t index) const;
-		size_t getServerCount() const;
-
+		Config();
+		Config( Config const & );
+		Config & operator=(Config const & );
+		~Config();
+		bool	parse(const std::string &filename);
+		bool	GetGlobals(std::string &line, int &line_number);
 	private:
-		std::vector<t_server> servers;
-		struct Token {
-			std::string value;
-			int line;
-		};
-		std::vector<Token> tokenize(std::ifstream &file);
-		bool parseServerBlock(std::vector<Token> &tokens, size_t &i, t_server &server);
-		bool parseLocationBlock(std::vector<Token> &tokens, size_t &i, t_location &location);
-		bool parseErrorPagesBlock(std::vector<Token> &tokens, size_t &i, std::map<int, std::string> &map);
-		bool parseDirective(std::vector<Token> &tokens, size_t &i, const std::string &context, t_server &server, t_location *location);
-		void syntaxError(const std::string &msg, int line) const;
+		bool					_finished;
+		bool					_log_connections;
+		bool					_log_request;
+		std::string				_log_level;
+		std::vector<t_servers>	_servers;
 };
 
 #endif
