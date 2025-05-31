@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/23 04:01:24 by etaquet           #+#    #+#             */
-/*   Updated: 2025/05/30 20:02:35 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/05/31 13:13:17 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,9 +51,9 @@ class Config
 	private:
 		bool	parseGlobals(std::string &line, int &line_number);
 		bool	parseServer(std::ifstream &file, int &line_number);
-		bool	parseLocation(std::ifstream &file, int &line_number, t_location &server);
+		bool	parseLocation(std::ifstream &file, int &line_number, t_location &loc);
 		bool	parseErrors(std::ifstream &file, int &line_number, t_servers &server);
-		bool	parseVectors(std::string &line, t_servers &server);
+		bool	parseVectors(std::string &line, t_servers &server, t_location &loc, bool is_loc);
 
 		bool					_finished;
 		bool					_log_connections;

@@ -6,12 +6,13 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/05/30 20:02:48 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/05/31 13:14:08 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Config.hpp"
 #include "../includes/Colors.hpp"
+#include <cstddef>
 
 Config::Config() : _finished(false), _log_connections(false), _log_request(false), _log_level("") {}
 
@@ -101,7 +102,8 @@ bool	Config::parseServer(std::ifstream &file, int &line_number)
 		}
 		if (line.rfind("allowed_methods", 0) == 0 || line.rfind("server_name", 0) == 0 || line.rfind("index", 0) == 0)
 		{
-			parseVectors(line, server);
+			t_location nullloc;
+			parseVectors(line, server, nullloc, false);
 			continue ;
 		}
 		if (line.rfind("location", 0) == 0)
@@ -152,25 +154,8 @@ bool Config::parseLocation(std::ifstream &file, int &line_number, t_location &lo
 		std::istringstream iss(line);
 		if (line.rfind("try_files", 0) == 0 || line.rfind("allowed_methods", 0) == 0)
 		{
-			std::vector<std::string>* target_vector = NULL;
-
-			if (line.rfind("allowed_methods", 0) == 0)
-				target_vector = &loc._methods;
-			else if (line.rfind("try_files", 0) == 0)
-				target_vector = &loc._try_files;
-
-			std::string t;
-			int i = 0;
-			while (getline(iss, t, ' '))
-			{
-				if (i > 0)
-				{
-					if (back(t) == ';')
-						t = t.substr(0, t.length() - 1);
-					target_vector->push_back(t);
-				}
-				i++;
-			}
+			t_servers nullserv;
+			parseVectors(line, nullserv, loc, true);
 			continue ;
 		}
 		if (line.rfind("autoindex", 0) == 0)
@@ -234,16 +219,20 @@ bool Config::parseErrors(std::ifstream &file, int &line_number, t_servers &serve
 	return false;
 }
 
-bool	Config::parseVectors(std::string &line, t_servers &server)
+bool	Config::parseVectors(std::string &line, t_servers &server, t_location &loc, bool is_loc)
 {
 	std::vector<std::string>* target_vector = NULL;
 
-	if (line.rfind("allowed_methods", 0) == 0)
+	if (line.rfind("allowed_methods", 0) == 0 && !is_loc)
 		target_vector = &server._methods;
-	else if (line.rfind("server_name", 0) == 0)
+	else if (line.rfind("server_name", 0) == 0 && !is_loc)
 		target_vector = &server._names;
-	else if (line.rfind("index", 0) == 0)
+	else if (line.rfind("index", 0) == 0 && !is_loc)
 		target_vector = &server._indexes;
+	else if (line.rfind("allowed_methods", 0) == 0 && is_loc)
+		target_vector = &loc._methods;
+	else if (line.rfind("try_files", 0) == 0 && is_loc)
+		target_vector = &loc._try_files;
 
 	std::istringstream iss(line);
 	std::string t;
