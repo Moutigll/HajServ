@@ -10,7 +10,8 @@ OBJ_DIR		:= obj
 SRCS		:=	$(SRC_DIR)/main.cpp \
 				$(SRC_DIR)/Config.cpp \
 				$(SRC_DIR)/Utils.cpp \
-				$(SRC_DIR)/HttpError.cpp
+				$(SRC_DIR)/HttpError.cpp \
+				$(SRC_DIR)/Logger.cpp \
 
 OBJS		:= $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 

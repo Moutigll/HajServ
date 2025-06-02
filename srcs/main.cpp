@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:50 by etaquet           #+#    #+#             */
-/*   Updated: 2025/05/30 20:01:13 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/02 19:35:05 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,5 +27,7 @@ int main(int argc, char **argv)
 		std::cerr << RED << "Failed to parse config file." << RESET << std::endl;
 		return 1;
 	}
+	config.logConfig();
+
 	return 0;
 }

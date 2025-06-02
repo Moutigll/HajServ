@@ -3,17 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   Config.hpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/23 04:01:24 by etaquet           #+#    #+#             */
-/*   Updated: 2025/05/31 13:13:17 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/02 19:34:12 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
-#include "Utils.hpp"
+#include "Logger.hpp"
 
 typedef struct s_location
 {
@@ -26,7 +26,7 @@ typedef struct s_location
 	std::vector<std::string>			_try_files;
 }	t_location;
 
-typedef struct s_servers
+typedef struct s_server
 {
 	std::vector<std::string>			_methods;
 	std::vector<std::string>			_names;
@@ -35,7 +35,7 @@ typedef struct s_servers
 	std::map<int, std::string>			_errors;
 	std::string							_root_error;
 	std::vector<t_location>				_locations;
-}	t_servers;
+}	t_server;
 
 class Config
 {
@@ -44,22 +44,26 @@ class Config
 		Config( Config const & );
 		Config & operator=(Config const & );
 		~Config();
-		bool	parse(const std::string &filename);
-		const t_servers		&getServerBlock(size_t index) const;
+
+		bool				parse(const std::string &filename);
+		const t_server		&getServerBlock(size_t index) const;
+		void				logConfig() const;
 
 		size_t	getServerCount() const;
 	private:
 		bool	parseGlobals(std::string &line, int &line_number);
 		bool	parseServer(std::ifstream &file, int &line_number);
 		bool	parseLocation(std::ifstream &file, int &line_number, t_location &loc);
-		bool	parseErrors(std::ifstream &file, int &line_number, t_servers &server);
-		bool	parseVectors(std::string &line, t_servers &server, t_location &loc, bool is_loc);
+		bool	parseErrors(std::ifstream &file, int &line_number, t_server &server);
+		bool	parseVectors(std::string &line, t_server &server, t_location &loc, bool is_loc);
 
 		bool					_finished;
 		bool					_log_connections;
 		bool					_log_request;
+		bool					_log_console;
+		std::string				_log_file;
 		std::string				_log_level;
-		std::vector<t_servers>	_servers;
+		std::vector<t_server>	_servers;
 };
 
 #endif
