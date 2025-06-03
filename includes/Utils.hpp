@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 23:50:18 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/02 19:37:03 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/03 15:47:19 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,8 +23,35 @@
 # include <sys/time.h>
 # include <vector>
 
+/**
+ * @brief Trims leading and trailing whitespace from a string.
+ *
+ * Removes spaces, tabs, carriage returns, and newline characters
+ * from the beginning and end of the given string.
+ *
+ * @param[in] s The string to trim.
+ * @return std::string A new string with whitespace removed from both ends.
+ */
 std::string	trim(const std::string &s);
+
+/**
+ * @brief Returns the last character of a string.
+ *
+ * If the string is empty, returns the null character '\0'.
+ *
+ * @param[in] s The string to extract the last character from.
+ * @return char The last character of the string, or '\0' if the string is empty.
+ */
 char		back(const std::string &s);
+
+/**
+ * @brief Gets the current timestamp as a formatted string with millisecond precision.
+ *
+ * The format of the returned string is: YYYY-MM-DD HH:MM:SS.mmm
+ * (e.g., "2025-06-02 14:23:58.127").
+ *
+ * @return std::string The current local time with milliseconds, formatted as a string.
+ */
 std::string	getTimestamp(void);
 
 template <typename T>
