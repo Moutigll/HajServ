@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/30 14:29:56 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/03 15:47:14 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/03 20:23:14 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,4 +42,18 @@ std::string	getTimestamp(void)
 	std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &tm);
 	oss << buf << '.' << (millisec < 100 ? (millisec < 10 ? "00" : "0") : "") << millisec;
 	return (oss.str());
+}
+
+std::vector<std::string>	split(const std::string &str, char delim)
+{
+	std::vector<std::string>	result;
+	std::string					token;
+	std::istringstream			iss(str);
+
+	while (std::getline(iss, token, delim))
+	{
+		if (!token.empty())
+			result.push_back(token);
+	}
+	return result;
 }

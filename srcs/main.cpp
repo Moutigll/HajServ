@@ -6,12 +6,11 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:50 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/02 19:35:05 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/03 20:34:02 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../includes/Config.hpp"
-#include "../includes/Colors.hpp"
+#include "../includes/ServerManager.hpp"
 
 int main(int argc, char **argv)
 {
@@ -28,6 +27,13 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	config.logConfig();
+
+	ServerManager serverManager;
+	if (!serverManager.init(config.getServers()))
+	{
+		g_logger.log(LOG_ERROR, "Failed to initialize server manager.");
+		return 1;
+	}
 
 	return 0;
 }

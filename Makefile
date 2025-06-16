@@ -13,6 +13,8 @@ SRCS		:=	$(SRC_DIR)/main.cpp \
 				$(SRC_DIR)/HttpError.cpp \
 				$(SRC_DIR)/Logger.cpp \
 				$(SRC_DIR)/Port.cpp \
+				$(SRC_DIR)/ServerManager.cpp \
+				$(SRC_DIR)/Connection.cpp \
 
 OBJS		:= $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 

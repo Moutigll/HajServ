@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/03 15:43:47 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/03 20:34:59 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -150,10 +150,11 @@ bool	Config::parseServer(std::ifstream &file, int &line_number)
 			_servers.push_back(server);
 			return true;
 		}
-		if (line.rfind("allowed_methods", 0) == 0 || line.rfind("server_name", 0) == 0 || line.rfind("index", 0) == 0)
+		if (line.rfind("allowed_methods", 0) == 0 || line.rfind("server_name", 0) == 0 || line.rfind("index", 0) == 0 || line.rfind("listen", 0) == 0)
 		{
 			t_location nullloc;
-			parseVectors(line, server, nullloc, false);
+			if (!parseVectors(line, server, nullloc, false))
+				return false;
 			continue ;
 		}
 		if (line.rfind("location", 0) == 0)
@@ -193,17 +194,20 @@ bool	Config::parseServer(std::ifstream &file, int &line_number)
 bool	Config::parseVectors(std::string &line, t_server &server, t_location &loc, bool is_loc)
 {
 	std::vector<std::string>* target_vector = NULL;
+	bool is_port = false;
 
 	if (line.rfind("allowed_methods", 0) == 0 && !is_loc)
 		target_vector = &server._methods;
 	else if (line.rfind("server_name", 0) == 0 && !is_loc)
-		target_vector = &server._names;
+		target_vector = &server._hosts;
 	else if (line.rfind("index", 0) == 0 && !is_loc)
 		target_vector = &server._indexes;
 	else if (line.rfind("allowed_methods", 0) == 0 && is_loc)
 		target_vector = &loc._methods;
 	else if (line.rfind("try_files", 0) == 0 && is_loc)
 		target_vector = &loc._try_files;
+	else if (line.rfind("listen", 0) == 0 && !is_loc)
+		is_port = true;
 
 	std::istringstream iss(line);
 	std::string t;
@@ -214,6 +218,18 @@ bool	Config::parseVectors(std::string &line, t_server &server, t_location &loc, 
 		{
 			if (back(t) == ';')
 				t = t.substr(0, t.length() - 1);
+			if (is_port)
+			{
+				int port = atoi(t.c_str());
+				if (port <= 0 || port > 65535)
+				{
+					std::cerr << RED << "Error: Invalid port number '" << t << std::endl;
+					return false;
+				}
+				server._ports.push_back(port);
+				continue;
+			}
+			
 			target_vector->push_back(t);
 		}
 		i++;
@@ -388,7 +404,10 @@ void	Config::logConfig() const
 		out += std::string(BRIGHT_PURPLE "Server block [") + to_string(i) + "]" RESET + "\n";
 
 		logVectorStr(out, "Methods", srv._methods, CYAN);
-		logVectorStr(out, "Server names", srv._names, BRIGHT_CYAN);
+		logVectorStr(out, "Server names", srv._hosts, BRIGHT_CYAN);
+		out += std::string(BRIGHT_BLUE "\tPorts (") + to_string(srv._ports.size()) + "):" RESET + "\n";
+		for (size_t j = 0; j < srv._ports.size(); j++)
+			out += std::string("\t\t") + BRIGHT_YELLOW + to_string(srv._ports[j]) + RESET + "\n";
 		logVectorStr(out, "Indexes", srv._indexes, BRIGHT_GREEN);
 
 		out += std::string(BRIGHT_YELLOW "\tRoot error page: " RESET) + BRIGHT_RED + srv._root_error + RESET + "\n";
@@ -405,4 +424,9 @@ void	Config::logConfig() const
 	}
 
 	g_logger.log(LOG_DEBUG, out);
+}
+
+const std::vector<t_server> &Config::getServers() const
+{
+	return this->_servers;
 }

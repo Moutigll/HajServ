@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 23:50:18 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/03 15:47:19 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/03 20:23:41 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,6 +53,18 @@ char		back(const std::string &s);
  * @return std::string The current local time with milliseconds, formatted as a string.
  */
 std::string	getTimestamp(void);
+
+/**
+ * @brief Splits a string into a vector of substrings based on a delimiter.
+ *
+ * This function takes a string and splits it into parts using the specified
+ * delimiter character. Empty tokens are ignored.
+ *
+ * @param[in] str The string to split.
+ * @param[in] delim The delimiter character used to split the string.
+ * @return std::vector<std::string> A vector containing the substrings.
+ */
+std::vector<std::string>	split(const std::string &str, char delim);
 
 template <typename T>
 std::string	to_string(const T &value)

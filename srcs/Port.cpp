@@ -6,18 +6,18 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 15:39:51 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/03 16:37:54 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/03 20:47:52 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Port.hpp"
 
 Port::Port()
-: _port(80), _socket_fd(-1), _servers()
+: _port(80), _socket_fd(-1), _servers(), _hosts()
 {}
 
 Port::Port(int port_number, t_server *srv)
-: _port(port_number), _socket_fd(-1), _servers()
+: _port(port_number), _socket_fd(-1), _servers(), _hosts()
 {
 	if (port_number <= 0 || port_number > 65535)
 	{
@@ -25,7 +25,10 @@ Port::Port(int port_number, t_server *srv)
 		_port = 80; // Default to port 80 if invalid
 	}
 	if (srv)
+	{
 		_servers.push_back(srv);
+		_hosts = srv->_hosts;
+	}
 }
 
 Port::Port(const Port &other)
@@ -51,7 +54,7 @@ Port::~Port()
 
 bool	Port::_handleSocketError(const std::string &message)
 {
-	g_logger.log(LOG_ERROR, message + " (errno: " + to_string(errno) + ")");
+	g_logger.log(LOG_ERROR, message + " (errno: " + strerror(errno) + ")");
 	if (this->_socket_fd != -1)
 	{
 		close(this->_socket_fd);
@@ -91,7 +94,19 @@ bool Port::init()
 	if (listen(this->_socket_fd, 10) < 0) // Start listening for incoming connections, with a backlog of 10
 		return this->_handleSocketError("Listen failed");
 
-	g_logger.log(LOG_INFO, std::string(GREEN) + "Port " + to_string(this->_port) + " is listening on socket fd " + to_string(this->_socket_fd) + RESET);
+	std::string hosts_list;
+	for (std::vector<std::string>::const_iterator it = _hosts.begin(); it != _hosts.end(); ++it)
+	{
+		hosts_list += *it;
+		if (it + 1 != _hosts.end())
+			hosts_list += ", ";
+	}
+
+	g_logger.log(LOG_INFO, std::string(GREEN) + "Port " + to_string(this->_port) +
+		" is listening on socket fd " + to_string(this->_socket_fd) + RESET);
+	g_logger.log(LOG_DEBUG, "Hosts listening on port " + to_string(this->_port) + ": " + hosts_list);
+
+	
 	return true;
 }
 
@@ -100,7 +115,10 @@ void Port::addServer(t_server *srv)
 	if (srv)
 	{
 		_servers.push_back(srv);
-		g_logger.log(LOG_INFO, "Server added to port " + to_string(_port));
+		if (srv->_hosts.empty())
+			g_logger.log(LOG_WARNING, "Server added to port " + to_string(_port) + " has no hosts specified.");
+		else
+			_hosts.insert(_hosts.end(), srv->_hosts.begin(), srv->_hosts.end());
 	}
 	else
 		g_logger.log(LOG_WARNING, "Attempted to add a null server to port " + to_string(_port));

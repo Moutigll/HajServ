@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/23 04:01:24 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/03 15:43:59 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/03 20:34:47 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,12 +29,13 @@ typedef struct s_location
 typedef struct s_server
 {
 	std::vector<std::string>			_methods;
-	std::vector<std::string>			_names;
+	std::vector<std::string>			_hosts;
 	std::vector<std::string>			_indexes;
 	std::map<std::string, std::string>	_data;
 	std::map<int, std::string>			_errors;
 	std::string							_root_error;
 	std::vector<t_location>				_locations;
+	std::vector<int>					_ports;
 }	t_server;
 
 class Config
@@ -54,9 +55,10 @@ class Config
 		 * @param filename The path to the config file.
 		 * @return true if parsing was successful, false otherwise.
 		 */
-		bool				parse(const std::string &filename);
-		const t_server		&getServerBlock(size_t index) const;
-		void				logConfig() const;
+		bool						parse(const std::string &filename);
+		const t_server				&getServerBlock(size_t index) const;
+		const std::vector<t_server>	&getServers() const;
+		void						logConfig() const;
 
 		size_t	getServerCount() const;
 	private:
