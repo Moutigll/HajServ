@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:01 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/16 11:58:53 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/19 19:24:09 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -102,4 +102,115 @@ bool	ServerManager::init(const std::vector<t_server> &servers)
 	}
 
 	return true;
+}
+
+
+/*-------------------
+    Main logic loop
+---------------------*/
+
+Port *ServerManager::isListeningSocket(int fd) const
+{
+	for (size_t i = 0; i < this->_ports.size(); ++i)
+	{
+		if (this->_ports[i]->getSocketFd() == fd)
+			return this->_ports[i];
+	}
+	return NULL;
+}
+
+void	ServerManager::start(void)
+{
+	struct epoll_event	events[EPOLL_MAX_EVENTS];
+	int					nfds;
+	int					i;
+
+	g_logger.log(LOG_INFO, "Server started, waiting for events...");
+
+	while (true)
+	{
+		nfds = epoll_wait(this->_epollFd, events, EPOLL_MAX_EVENTS, EPOLL_TIMEOUT);
+		if (nfds == -1)
+		{
+			if (errno == EINTR)
+				continue;
+			g_logger.log(LOG_ERROR, "epoll_wait failed: " + std::string(strerror(errno)));
+			break;
+		}
+
+		i = 0;
+		while (i < nfds)
+		{
+			int	fd = events[i].data.fd;
+			Port *port = this->isListeningSocket(fd);
+
+			if (port)
+				newConnection(port);
+			++i;
+		}
+		this->checkTimeouts();
+	}
+}
+
+void	ServerManager::newConnection(Port *port)
+{
+	if (port == NULL || port->getSocketFd() < 0)
+	{
+		g_logger.log(LOG_ERROR, "Invalid port for new connection");
+		return;
+	}
+
+	int client_fd = accept(port->getSocketFd(), NULL, NULL);
+	if (client_fd < 0)
+	{
+		if (errno != EAGAIN && errno != EWOULDBLOCK)
+			g_logger.log(LOG_ERROR, "Failed to accept new connection on fd " + to_string(port->getSocketFd()) + ": " + std::string(strerror(errno)));
+		return;
+	}
+
+	Connection *conn = new Connection(client_fd, port);
+	if (conn->isClosed())
+	{
+		close(client_fd);
+		delete conn;
+		return;
+	}
+
+	this->_connections[client_fd] = conn;
+
+	if (!this->addToEpoll(client_fd, EPOLLIN | EPOLLET))
+	{
+		close(client_fd);
+		delete conn;
+		this->_connections.erase(client_fd);
+		return;
+	}
+
+	g_logger.log(LOG_DEBUG, "New connection accepted on fd " + to_string(client_fd));
+}
+
+void	ServerManager::checkTimeouts(void)
+{
+	std::map<int, Connection *>::iterator it = this->_connections.begin();
+	while (it != this->_connections.end())
+	{
+		Connection *conn = it->second;
+		if (conn->isClosed() || conn->isTimeout())
+		{
+			if (conn->isClosed())
+				g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(it->first) + " is closed");
+			else
+				g_logger.log(LOG_WARNING, "Connection on fd " + to_string(it->first) + " timed out");
+
+			close(it->first);
+			delete conn;
+			std::map<int, Connection *>::iterator temp = it;
+			++it;
+			this->_connections.erase(temp);
+		}
+		else
+		{
+			++it;
+		}
+	}
 }

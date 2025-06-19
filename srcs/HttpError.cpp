@@ -3,14 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   HttpError.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/30 13:59:23 by etaquet           #+#    #+#             */
-/*   Updated: 2025/05/30 14:00:37 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/19 16:48:05 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../includes/HttpError.hpp"
+#include "../includes/Http/HttpError.hpp"
 
 
 std::map<int, std::string> HttpError::_HttpErrors = HttpError::_initHttpErrors();

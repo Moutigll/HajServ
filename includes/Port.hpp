@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 15:11:40 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/03 20:19:18 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/19 18:42:28 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,6 +63,13 @@ class Port
 		 * @param srv A pointer to the server to add.
 		 */
 		void	addServer(t_server *srv);
+
+		/**
+		 * @brief Returns a server structure by its index.
+		 * @param index The index of the server to retrieve.
+		 * @return A pointer to the server structure, or nullptr if index is out of bounds.
+		*/
+		t_server	*getServer(size_t index) const;
 
 		/**
 		 * @brief Gets the file descriptor of the listening socket.

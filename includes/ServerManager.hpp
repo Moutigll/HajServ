@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 16:45:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/03 20:37:23 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/19 19:02:26 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,9 @@
 
 # include "Port.hpp"
 # include "Connection.hpp"
+
+#define EPOLL_MAX_EVENTS 256 // Maximum number of events to handle in one epoll_wait call.
+#define EPOLL_TIMEOUT 1000 // Timeout in milliseconds for epoll_wait.
 
 /**
  * @class ServerManager
@@ -50,7 +53,7 @@ class ServerManager
 		/**
 		 * @brief Main server loop using epoll to wait for events.
 		 */
-		//void	run(void);
+		void	start(void);
 
 	private:
 		int								_epollFd;
@@ -60,23 +63,38 @@ class ServerManager
 		/**
 		 * @brief Adds a file descriptor to epoll interest list.
 		 * @param fd File descriptor to monitor.
-		 * @param events Bitmask of events (e.g., EPOLLIN).
+		 * @param events Bitmask of events to monitor (EPOLLIN, EPOLLOUT, etc...).
 		 * @return true on success.
 		 */
 		bool	addToEpoll(int fd, uint32_t events);
 
 		/**
-		 * @brief Handles an epoll event for a specific fd.
-		 * @param fd The file descriptor that triggered the event.
-		 * @param events The triggered epoll events.
+		 * @brief Checks if a file descriptor is a listening socket.
+		 * @param fd File descriptor to check.
+		 * @return Pointer to Port if fd is a listening socket, NULL otherwise.
 		 */
-		void	handleEvent(int fd, uint32_t events);
+		Port *isListeningSocket(int fd) const;
 
 		/**
-		 * @brief Cleans up and closes a connection.
-		 * @param fd File descriptor to clean.
+		 * @brief Accepts a new client connection on the given listening port.
+		 * 
+		 * This function calls accept() on the socket fd of the provided Port object.
+		 * If successful, it creates a new Connection object for the client socket,
+		 * adds it to the internal connections map, and registers the client fd with epoll.
+		 * 
+		 * If any error occurs during accept, connection creation, or epoll registration,
+		 * the client socket is closed and the Connection object is deleted to avoid leaks.
+		 * 
+		 * @param port Pointer to the Port object representing the listening socket.
+		 *             Must not be NULL and must have a valid socket fd.
 		 */
-		void	cleanupConnection(int fd);
+		void	newConnection(Port *port);
+
+		/**
+		 * @brief Removes connections that are closed or timed out.
+		 */
+		void	checkTimeouts(void);
+
 };
 
 #endif

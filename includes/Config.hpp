@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/23 04:01:24 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/03 20:34:47 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/19 18:57:24 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,6 +36,7 @@ typedef struct s_server
 	std::string							_root_error;
 	std::vector<t_location>				_locations;
 	std::vector<int>					_ports;
+	int									_timeout;
 }	t_server;
 
 class Config

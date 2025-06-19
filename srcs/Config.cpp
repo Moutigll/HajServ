@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/03 20:34:59 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/19 19:06:50 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,6 +138,7 @@ bool	Config::parseGlobals(std::string &line, int &line_number)
 bool	Config::parseServer(std::ifstream &file, int &line_number)
 {
 	t_server server;
+	server._timeout = 30; // Default timeout value
 	std::string line;
 	while (std::getline(file, line))
 	{
@@ -324,8 +325,7 @@ const t_server &Config::getServerBlock(size_t index) const
 {
 	if (index < this->_servers.size() && index >= 0)
 		return this->_servers[index];
-	static const t_server empty_server;
-	return empty_server;
+	return this->_servers[0];
 }
 
 size_t	Config::getServerCount() const

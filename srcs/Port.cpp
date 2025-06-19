@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 15:39:51 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/03 20:47:52 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/19 18:42:41 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -127,4 +127,11 @@ void Port::addServer(t_server *srv)
 int Port::getSocketFd() const
 {
 	return _socket_fd;
+}
+
+t_server *Port::getServer(size_t index) const
+{
+	if (index < _servers.size())
+		return _servers[index];
+	return NULL;
 }
