@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/20 16:37:03 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/20 16:41:30 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -139,7 +139,7 @@ bool	Config::parseServer(std::ifstream &file, int &line_number)
 {
 	t_server server;
 	server._timeout = 30; // Default timeout value
-	server._max_body_size = 2e+8; // Default max_body_size value in bytes
+	server._max_body_size = 204800; // Default max_body_size value in bytes : 200K
 	std::string line;
 	while (std::getline(file, line))
 	{
@@ -191,7 +191,7 @@ bool	Config::parseServer(std::ifstream &file, int &line_number)
 
 		if (key == "timeout")
 		{
-			long long size = atoll(value.c_str());
+			size_t size = atoll(value.c_str());
 			if (size <= 0)
 			{
 				std::cerr << RED << "Error: Invalid value '" << value << "' at line " << line_number << "." << RESET << std::endl;
@@ -203,7 +203,7 @@ bool	Config::parseServer(std::ifstream &file, int &line_number)
 		}
 		if (key == "max_body_size")
 		{
-			double size = atof(value.c_str());
+			size_t size = atoll(value.c_str());
 			if (size <= 0)
 			{
 				std::cerr << RED << "Error: Invalid value '" << value << "' at line " << line_number << "." << RESET << std::endl;
@@ -220,10 +220,6 @@ bool	Config::parseServer(std::ifstream &file, int &line_number)
 			else if (value[value.length() - 1] == 'K')
 			{
 				server._max_body_size = size * 1024; // Convert KB to bytes
-			}
-			else if (value[value.length() - 1] == 'B')
-			{
-				server._max_body_size = size; // Already in bytes
 			}
 			else
 			{

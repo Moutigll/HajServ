@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/23 04:01:24 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/20 16:30:38 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/20 16:39:20 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ typedef struct s_server
 	std::vector<t_location>				_locations;
 	std::vector<int>					_ports;
 	size_t								_timeout;
-	double								_max_body_size;
+	size_t								_max_body_size;
 }	t_server;
 
 class Config
