@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/19 19:06:50 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 15:43:54 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -192,23 +192,43 @@ bool	Config::parseServer(std::ifstream &file, int &line_number)
 	return false;
 }
 
+std::vector<std::string>* getTargetVector(const std::string& line, bool is_loc, t_server& server, t_location& loc, bool& is_port)
+{
+	is_port = false;
+
+	std::map<std::string, std::vector<std::string>*> map;
+
+	if (is_loc)
+	{
+		map["allowed_methods"] = &loc._methods;
+		map["try_files"] = &loc._try_files;
+	}
+	else
+	{
+		map["allowed_methods"] = &server._methods;
+		map["server_name"]    = &server._hosts;
+		map["index"]          = &server._indexes;
+
+		if (line.rfind("listen", 0) == 0)
+		{
+			is_port = true;
+			return NULL;
+		}
+	}
+
+	for (std::map<std::string, std::vector<std::string>*>::iterator it = map.begin(); it != map.end(); ++it)
+		if (line.rfind(it->first, 0) == 0)
+			return it->second;
+
+	return NULL;
+}
+
+
 bool	Config::parseVectors(std::string &line, t_server &server, t_location &loc, bool is_loc)
 {
-	std::vector<std::string>* target_vector = NULL;
 	bool is_port = false;
 
-	if (line.rfind("allowed_methods", 0) == 0 && !is_loc)
-		target_vector = &server._methods;
-	else if (line.rfind("server_name", 0) == 0 && !is_loc)
-		target_vector = &server._hosts;
-	else if (line.rfind("index", 0) == 0 && !is_loc)
-		target_vector = &server._indexes;
-	else if (line.rfind("allowed_methods", 0) == 0 && is_loc)
-		target_vector = &loc._methods;
-	else if (line.rfind("try_files", 0) == 0 && is_loc)
-		target_vector = &loc._try_files;
-	else if (line.rfind("listen", 0) == 0 && !is_loc)
-		is_port = true;
+	std::vector<std::string>* target_vector = getTargetVector(line, is_loc, server, loc, is_port);
 
 	std::istringstream iss(line);
 	std::string t;

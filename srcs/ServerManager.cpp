@@ -3,14 +3,25 @@
 /*                                                        :::      ::::::::   */
 /*   ServerManager.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:01 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 15:21:19 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 15:37:09 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/ServerManager.hpp"
+
+volatile sig_atomic_t keepRunning = 1;
+
+void signalHandler(int signal)
+{
+    if (signal == SIGINT)
+	{
+        std::cout << "\nCtrl+C detected. Exiting main loop...\n";
+        keepRunning = false;
+    }
+}
 
 ServerManager::ServerManager(void)
 {
@@ -125,9 +136,11 @@ void	ServerManager::start(void)
 	int					nfds;
 	int					i;
 
+	std::signal(SIGINT, signalHandler);
+	
 	g_logger.log(LOG_INFO, "Server started, waiting for events...");
 
-	while (true)
+	while (keepRunning)
 	{
 		nfds = epoll_wait(this->_epollFd, events, EPOLL_MAX_EVENTS, EPOLL_TIMEOUT);
 		if (nfds == -1)
