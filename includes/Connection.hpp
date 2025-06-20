@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:48:52 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 18:16:39 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 22:44:30 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,8 @@
 # define CONNECTION_HPP
 
 # include "Port.hpp"
+# include "Http/HttpRequest.hpp"
+# include "Http/HttpResponse.hpp"
 
 enum e_ConnectionState
 {
@@ -64,6 +66,14 @@ class Connection
 		 */
 		bool	appendToReadBuffer(const char *buffer, size_t size);
 
+		/**
+		 * @brief Parse the HTTP request from the read buffer.
+		 * This function processes the request line, headers, and body
+		 * in sequence.
+		 * @param buffer The buffer containing the HTTP request data.
+		 * @return true if the request was successfully parsed, false if an error occurred or if more data is needed.
+		 */
+		bool	parseRequest(void);
 
 	private:
 		int					_fd;
@@ -73,6 +83,17 @@ class Connection
 		bool				_closed;
 		char				*_readBuffer;
 		std::time_t			_lastActivity;
-};
+		HttpTransaction		*_httpTransaction;
+		HttpRequest			*_httpRequest;
+		HttpResponse		*_httpResponse;
+		
+		/**
+		 * @brief Switch the connection to an error state.
+		 * This function sets the connection state to WRITING
+		 * and prepares an error response based on the provided error code.
+		 * @param errorCode The error code to set for the response.
+		 */
+		void	switchToErrorState(int errorCode);
+	};
 
 #endif

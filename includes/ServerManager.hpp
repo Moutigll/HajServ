@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 16:45:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 18:32:06 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 19:51:59 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -61,12 +61,13 @@ class ServerManager
 		std::map<int, Connection *>		_connections;	// Active client connections.
 
 		/**
-		 * @brief Adds a file descriptor to epoll interest list.
+		 * @brief Updates the epoll instance with a file descriptor and events.
 		 * @param fd File descriptor to monitor.
-		 * @param events Bitmask of events to monitor (EPOLLIN, EPOLLOUT, etc...).
-		 * @return true on success.
+		 * @param events Events to monitor (EPOLLIN, EPOLLOUT, etc.).
+		 * @param op Operation to perform (EPOLL_CTL_ADD, EPOLL_CTL_MOD, etc.).
+		 * @return true if the operation succeeded, false on error.
 		 */
-		bool	addToEpoll(int fd, uint32_t events);
+		bool	updateEpoll(int fd, uint32_t events, int op = EPOLL_CTL_ADD);
 
 		/**
 		 * @brief Checks if a file descriptor is a listening socket.

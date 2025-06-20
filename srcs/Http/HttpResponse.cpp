@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/18 19:17:04 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 21:04:58 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,11 +33,11 @@ bool HttpResponse::isComplete() const {
 }
 
 void HttpResponse::setStatus(const HttpError &status) {
-	_status = status;
+	_status = status.getCode();
 }
 
 void HttpResponse::setStatus(int code) {
-	_status = HttpError(code);
+	_status = code;
 }
 
 void HttpResponse::addHeader(const std::string &name, const std::string &value) {
@@ -49,7 +49,6 @@ void HttpResponse::setBody(const std::string &body) {
 }
 
 void HttpResponse::construct() {
-	_requestLine = "HTTP/1.1 " + std::to_string(_status.getCode()) + " " + _status.getMessage(_status.getCode());
 	_headers["Content-Length"] = std::to_string(_body.size());
 }
 

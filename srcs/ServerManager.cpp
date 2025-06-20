@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:01 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 18:38:15 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 22:18:03 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,15 +57,15 @@ ServerManager::~ServerManager(void)
 	close(this->_epollFd);
 }
 
-bool	ServerManager::addToEpoll(int fd, uint32_t events)
+bool	ServerManager::updateEpoll(int fd, uint32_t events, int op)
 {
 	struct epoll_event	event;
 
 	event.data.fd = fd;
 	event.events = events;
-	if (epoll_ctl(this->_epollFd, EPOLL_CTL_ADD, fd, &event) == -1)
+	if (epoll_ctl(this->_epollFd, op, fd, &event) == -1)
 	{
-		g_logger.log(LOG_ERROR, "Failed to add fd " + to_string(fd) + " to epoll: " + std::string(strerror(errno)));
+		g_logger.log(LOG_ERROR, "Failed to update fd " + to_string(fd) + " in epoll: " + std::string(strerror(errno)));
 		return false;
 	}
 	return true;
@@ -106,9 +106,12 @@ bool	ServerManager::init(const std::vector<t_server> &servers)
 
 		this->_ports.push_back(port);
 
-		if (!this->addToEpoll(port->getSocketFd(), EPOLLIN))
+		if (!this->updateEpoll(port->getSocketFd(), EPOLLIN, EPOLL_CTL_ADD))
 		{
+			g_logger.log(LOG_ERROR, "Failed to add port " + to_string(port_number) + " to epoll");
 			delete port;
+			this->_ports.pop_back();
+			continue;
 		}
 	}
 
@@ -207,8 +210,9 @@ void	ServerManager::newConnection(Port *port)
 	// EPOLLRDHUP = Peer closed connection
 	// EPOLLHUP = Hang-up event
 	// EPOLLERR = Error event
-	if (!this->addToEpoll(client_fd, EPOLLIN | EPOLLET | EPOLLRDHUP | EPOLLHUP | EPOLLERR))
+	if (!this->updateEpoll(client_fd, EPOLLIN | EPOLLET | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_ADD))
 	{
+		g_logger.log(LOG_ERROR, "Failed to add client fd " + to_string(client_fd) + " to epoll: " + std::string(strerror(errno)));
 		close(client_fd);
 		delete conn;
 		this->_connections.erase(client_fd);
@@ -263,6 +267,25 @@ void	ServerManager::handleConnectionEvent(struct epoll_event event)
 
 	if (event.events & EPOLLIN)
 		handleEpollInEvent(fd, it);
+	else if (event.events & EPOLLOUT)
+	{
+		const char	*response;
+
+		response = "HTTP/1.1 200 OK\r\n"
+				   "Content-Length: 11\r\n"
+				   "Content-Type: text/plain\r\n"
+				   "Connection: close\r\n"
+				   "\r\n"
+				   "Hello world";
+		ssize_t	bytes_sent = send(fd, response, strlen(response), 0);
+		if (bytes_sent < 0)
+		{
+			g_logger.log(LOG_ERROR, "Failed to send response on fd " + to_string(fd) + ": " + std::string(strerror(errno)));
+			closeConnection(fd, it);
+			return;
+		}
+		g_logger.log(LOG_DEBUG, "Sent response on fd " + to_string(fd) + ": [" + std::string(response) + "]");
+	}
 	else
 		g_logger.log(LOG_WARNING, "Unhandled event on fd " + to_string(fd) + ": " + to_string(event.events));
 }
@@ -277,9 +300,7 @@ void	ServerManager::handleEpollInEvent(int fd, std::map<int, Connection *>::iter
 		bytes_read = recv(fd, buffer, sizeof(buffer), 0);
 
 		if (bytes_read > 0 && it->second->getState() != WRITING)
-		{
 			it->second->appendToReadBuffer(buffer, bytes_read);
-		}
 		else if (bytes_read == 0)
 		{
 			g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " closed by peer");
@@ -298,6 +319,8 @@ void	ServerManager::handleEpollInEvent(int fd, std::map<int, Connection *>::iter
 			}
 		}
 	}
+	if (it->second->parseRequest() && it->second->getState() == WRITING) // If the request is complete we enable EPOLLOUT
+		updateEpoll(fd, EPOLLOUT | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_MOD);
 }
 
 

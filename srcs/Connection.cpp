@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:12 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 18:24:33 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 22:40:51 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,11 +14,11 @@
 
 Connection::Connection(void)
 	: _fd(-1), _port(NULL), _state(READING), _server(NULL),
-	  _closed(true), _readBuffer(NULL), _lastActivity(std::time(NULL)) {}
+	  _closed(true), _readBuffer(NULL), _lastActivity(std::time(NULL)), _httpTransaction(NULL), _httpRequest(NULL), _httpResponse(NULL) {}
 
 Connection::Connection(int fd, Port *port)
 	: _fd(fd), _port(port), _state(READING), _server(NULL),
-	  _closed(fd < 0), _readBuffer(NULL), _lastActivity(std::time(NULL))
+	  _closed(fd < 0), _readBuffer(NULL), _lastActivity(std::time(NULL)), _httpTransaction(NULL), _httpRequest(NULL), _httpResponse(NULL)
 {
 	if (port != NULL)
 	{
@@ -33,7 +33,7 @@ Connection::Connection(int fd, Port *port)
 Connection::Connection(const Connection &other)
 	: _fd(other._fd), _port(other._port), _state(other._state),
 	  _server(other._server), _closed(other._closed), _readBuffer(NULL),
-	  _lastActivity(other._lastActivity)
+	  _lastActivity(other._lastActivity), _httpTransaction(other._httpTransaction), _httpRequest(other._httpRequest), _httpResponse(other._httpResponse)
 {
 	if (other._readBuffer != NULL)
 	{
@@ -55,6 +55,9 @@ Connection &Connection::operator=(const Connection &other)
 		this->_lastActivity = other._lastActivity;
 		this->_server = other._server;
 		this->_state = other._state;
+		this->_httpTransaction = other._httpTransaction;
+		this->_httpRequest = other._httpRequest;
+		this->_httpResponse = other._httpResponse;
 
 		delete[] this->_readBuffer;
 		this->_readBuffer = NULL;
@@ -72,6 +75,10 @@ Connection &Connection::operator=(const Connection &other)
 Connection::~Connection(void)
 {
 	delete[] this->_readBuffer;
+	if (this->_httpRequest != NULL)
+		delete this->_httpRequest;
+	if (this->_httpResponse != NULL)
+		delete this->_httpResponse;
 }
 
 bool	Connection::isClosed(void) const
@@ -120,4 +127,55 @@ bool	Connection::appendToReadBuffer(const char *buffer, size_t size)
 		this->_readBuffer = newBuffer;
 	}
 	return true;
+}
+
+void	Connection::switchToErrorState(int errorCode)
+{
+	if (this->_httpResponse != NULL)
+		delete this->_httpResponse;
+	//this->_httpResponse = new HttpResponse(*this->_server);
+	//if (this->_httpResponse == NULL)
+		//return;
+	//this->_httpResponse->setStatus(errorCode);
+	(void)errorCode;
+	this->_state = WRITING;
+}
+
+bool Connection::parseRequest(void)
+{
+	if (this->_httpRequest != NULL)
+	{
+		delete this->_httpRequest;
+		this->_httpRequest = NULL;
+	}
+	
+	if (this->_httpTransaction == NULL)
+	{
+		this->_httpTransaction = new HttpRequest();
+		if (this->_httpTransaction == NULL)
+			return (switchToErrorState(500), false); // Allocation failed, switch to error state 500 internal server error
+	}
+
+	HttpRequest* request = dynamic_cast<HttpRequest*>(this->_httpTransaction);
+	if (request == NULL)
+		return (switchToErrorState(500), false); // Dynamic cast failed, should not happen
+	
+	int status = request->parse(this->_readBuffer);
+	if (status == -1)
+	{
+		switchToErrorState(request->getStatus());
+		delete this->_httpTransaction;
+		this->_httpTransaction = NULL;
+		return true;
+	}
+	else if (status == 0)
+	{
+		this->_state = READING; // Need more data
+		return false;
+	}
+	this->_httpRequest = request;
+	this->_httpTransaction = NULL;
+	_httpRequest->log();
+	this->_state = WRITING;
+	return true; // Request is complete, switch to writing state
 }
