@@ -6,31 +6,20 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:12 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 15:13:57 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 18:24:33 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Connection.hpp"
 
 Connection::Connection(void)
-{
-	this->_fd = -1;
-	this->_closed = true;
-	this->_port = NULL;
-	this->_lastActivity = std::time(NULL);
-	this->_server = NULL;
-}
+	: _fd(-1), _port(NULL), _state(READING), _server(NULL),
+	  _closed(true), _readBuffer(NULL), _lastActivity(std::time(NULL)) {}
 
-Connection::Connection(int fd, Port *port) : _fd(fd), _port(port)
+Connection::Connection(int fd, Port *port)
+	: _fd(fd), _port(port), _state(READING), _server(NULL),
+	  _closed(fd < 0), _readBuffer(NULL), _lastActivity(std::time(NULL))
 {
-	if (fd < 0)
-	{
-		this->_fd = -1;
-		this->_closed = true;
-	}
-	else
-		this->_closed = false;
-	this->_lastActivity = std::time(NULL);
 	if (port != NULL)
 	{
 		this->_server = port->getServer(0);
@@ -38,38 +27,51 @@ Connection::Connection(int fd, Port *port) : _fd(fd), _port(port)
 			this->_closed = true;
 	}
 	else
-	{
-		this->_server = NULL;
 		this->_closed = true;
-	}
 }
 
 Connection::Connection(const Connection &other)
+	: _fd(other._fd), _port(other._port), _state(other._state),
+	  _server(other._server), _closed(other._closed), _readBuffer(NULL),
+	  _lastActivity(other._lastActivity)
 {
-	this->_fd = other._fd;
-	this->_port = other._port;
-	this->_closed = other._closed;
-	this->_lastActivity = other._lastActivity;
-	this->_server = other._server;
+	if (other._readBuffer != NULL)
+	{
+		size_t len = strlen(other._readBuffer);
+		this->_readBuffer = new char[len + 1];
+		if (this->_readBuffer != NULL)
+			memcpy(this->_readBuffer, other._readBuffer, len + 1);
+	}
 }
+
 
 Connection &Connection::operator=(const Connection &other)
 {
 	if (this != &other)
 	{
 		this->_fd = other._fd;
-		this->_port = other._port;
 		this->_closed = other._closed;
+		this->_port = other._port;
 		this->_lastActivity = other._lastActivity;
 		this->_server = other._server;
+		this->_state = other._state;
+
+		delete[] this->_readBuffer;
+		this->_readBuffer = NULL;
+		if (other._readBuffer != NULL)
+		{
+			size_t len = strlen(other._readBuffer);
+			this->_readBuffer = new char[len + 1];
+			if (this->_readBuffer != NULL)
+				memcpy(this->_readBuffer, other._readBuffer, len + 1);
+		}
 	}
-	return (*this);
+	return *this;
 }
 
 Connection::~Connection(void)
 {
-	if (this->_fd != -1)
-		close(this->_fd);
+	delete[] this->_readBuffer;
 }
 
 bool	Connection::isClosed(void) const
@@ -83,4 +85,39 @@ bool	Connection::isTimeout(void) const
 		return true;
 	std::time_t now = std::time(NULL);
 	return (difftime(now, this->_lastActivity) > this->_server->_timeout);
+}
+
+void	Connection::updateLastActivity(void)
+{
+	this->_lastActivity = std::time(NULL);
+}
+
+e_ConnectionState	Connection::getState(void) const
+{
+	return (this->_state);
+}
+
+bool	Connection::appendToReadBuffer(const char *buffer, size_t size)
+{
+	if (this->_readBuffer == NULL)
+	{
+		this->_readBuffer = new char[size + 1];
+		if (this->_readBuffer == NULL)
+			return false;
+		memcpy(this->_readBuffer, buffer, size);
+		this->_readBuffer[size] = '\0';
+	}
+	else
+	{
+		size_t old_len = strlen(this->_readBuffer);
+		char *newBuffer = new char[old_len + size + 1];
+		if (newBuffer == NULL)
+			return false;
+		memcpy(newBuffer, this->_readBuffer, old_len);
+		memcpy(newBuffer + old_len, buffer, size);
+		newBuffer[old_len + size] = '\0';
+		delete[] this->_readBuffer;
+		this->_readBuffer = newBuffer;
+	}
+	return true;
 }

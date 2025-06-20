@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerManager.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:01 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 15:37:09 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/20 18:38:15 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -169,17 +169,26 @@ void	ServerManager::start(void)
 
 void	ServerManager::newConnection(Port *port)
 {
-	if (port == NULL || port->getSocketFd() < 0)
+	if (!port || port->getSocketFd() < 0)
 	{
 		g_logger.log(LOG_ERROR, "Invalid port for new connection");
 		return;
 	}
 
-	int client_fd = accept(port->getSocketFd(), NULL, NULL);
+	int	client_fd = accept(port->getSocketFd(), NULL, NULL);
 	if (client_fd < 0)
 	{
 		if (errno != EAGAIN && errno != EWOULDBLOCK)
-			g_logger.log(LOG_ERROR, "Failed to accept new connection on fd " + to_string(port->getSocketFd()) + ": " + std::string(strerror(errno)));
+			g_logger.log(LOG_ERROR, "Failed to accept new connection on fd " + to_string(port->getSocketFd()) + ": " + strerror(errno));
+		return;
+	}
+
+	// Set the client socket to non-blocking mode
+	int	flags = fcntl(client_fd, F_GETFL, 0);
+	if (flags == -1 || fcntl(client_fd, F_SETFL, flags | O_NONBLOCK) == -1)
+	{
+		g_logger.log(LOG_ERROR, "Failed to set non-blocking mode on fd " + to_string(client_fd) + ": " + strerror(errno));
+		close(client_fd);
 		return;
 	}
 
@@ -193,14 +202,11 @@ void	ServerManager::newConnection(Port *port)
 
 	this->_connections[client_fd] = conn;
 
-	/*
-	* EPOLLIN: Indicates that the file descriptor is ready for reading.
-	* EPOLLET: Edge-triggered mode, meaning events are reported only when the state
-	*          changes, not continuously while the condition is true.
-	* EPOLLRDHUP: Indicates that the remote end has closed the connection.
-	* EPOLLHUP: Indicates that the file descriptor has been hung up.
-	* EPOLLERR: Indicates an error condition on the file descriptor.
-	*/
+	// EPOLLIN = Read events
+	// EPOLLET = Edge-triggered mode
+	// EPOLLRDHUP = Peer closed connection
+	// EPOLLHUP = Hang-up event
+	// EPOLLERR = Error event
 	if (!this->addToEpoll(client_fd, EPOLLIN | EPOLLET | EPOLLRDHUP | EPOLLHUP | EPOLLERR))
 	{
 		close(client_fd);
@@ -212,26 +218,92 @@ void	ServerManager::newConnection(Port *port)
 	g_logger.log(LOG_DEBUG, "New connection accepted on fd " + to_string(client_fd));
 }
 
+
+/*------------------
+	Events handling
+-------------------*/
+
+void	ServerManager::closeConnection(int fd, std::map<int, Connection *>::iterator it)
+{
+	epoll_ctl(this->_epollFd, EPOLL_CTL_DEL, fd, NULL);
+	close(fd);
+	delete it->second;
+	this->_connections.erase(it);
+}
+
 void	ServerManager::handleConnectionEvent(struct epoll_event event)
 {
 	int	fd = event.data.fd;
 
-	if ((event.events & EPOLLHUP) || (event.events & EPOLLERR))
+	std::map<int, Connection *>::iterator it = this->_connections.find(fd);
+	if (it == this->_connections.end())
 	{
-		g_logger.log(LOG_DEBUG, "Client on fd " + to_string(fd) + " disconnected or error");
-		std::map<int, Connection *>::iterator it = this->_connections.find(fd);
-		if (it != this->_connections.end())
-		{
-			epoll_ctl(this->_epollFd, EPOLL_CTL_DEL, fd, NULL);
-
-			close(fd);
-			delete it->second;
-			this->_connections.erase(it);
-		}
+		g_logger.log(LOG_WARNING, "Received event for unknown fd " + to_string(fd));
+		epoll_ctl(this->_epollFd, EPOLL_CTL_DEL, fd, NULL);
+		close(fd);
 		return;
+	}
+
+	if (it->second->isClosed())
+		return;
+
+	it->second->updateLastActivity();
+
+	if ((event.events & EPOLLHUP) || (event.events & EPOLLERR) || (event.events & EPOLLRDHUP))
+	{
+		if (event.events & EPOLLHUP)
+			g_logger.log(LOG_DEBUG, "Client on fd " + to_string(fd) + " hung up, how rude!");
+		else if (event.events & EPOLLRDHUP)
+			g_logger.log(LOG_DEBUG, "Client on fd " + to_string(fd) + " closed the connection");
+		else if (event.events & EPOLLERR)
+			g_logger.log(LOG_ERROR, "EPOLLERR event on fd " + to_string(fd) + ": " + std::string(strerror(errno)));
+		closeConnection(fd, it);
+		return;
+	}
+
+	if (event.events & EPOLLIN)
+		handleEpollInEvent(fd, it);
+	else
+		g_logger.log(LOG_WARNING, "Unhandled event on fd " + to_string(fd) + ": " + to_string(event.events));
+}
+
+void	ServerManager::handleEpollInEvent(int fd, std::map<int, Connection *>::iterator &it)
+{
+	char	buffer[4096];
+	ssize_t	bytes_read;
+
+	while (1)
+	{
+		bytes_read = recv(fd, buffer, sizeof(buffer), 0);
+
+		if (bytes_read > 0 && it->second->getState() != WRITING)
+		{
+			it->second->appendToReadBuffer(buffer, bytes_read);
+		}
+		else if (bytes_read == 0)
+		{
+			g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " closed by peer");
+			closeConnection(fd, it);
+			return;
+		}
+		else
+		{
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+				break;
+			else
+			{
+				g_logger.log(LOG_ERROR, "Error reading from fd " + to_string(fd) + ": " + std::string(strerror(errno)));
+				closeConnection(fd, it);
+				return;
+			}
+		}
 	}
 }
 
+
+/*--------------------
+	Others
+---------------------*/
 
 void	ServerManager::checkTimeouts(void)
 {
@@ -246,8 +318,11 @@ void	ServerManager::checkTimeouts(void)
 			else
 				g_logger.log(LOG_WARNING, "Connection on fd " + to_string(it->first) + " timed out");
 
-			close(it->first);
+			int	fd = it->first;
+			epoll_ctl(this->_epollFd, EPOLL_CTL_DEL, fd, NULL);
+			close(fd);
 			delete conn;
+
 			std::map<int, Connection *>::iterator temp = it;
 			++it;
 			this->_connections.erase(temp);
@@ -258,3 +333,4 @@ void	ServerManager::checkTimeouts(void)
 		}
 	}
 }
+

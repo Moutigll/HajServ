@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 16:45:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 15:12:33 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 18:32:06 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,13 +90,43 @@ class ServerManager
 		 */
 		void	newConnection(Port *port);
 
-		void	handleConnectionEvent(struct epoll_event event);
-
 		/**
 		 * @brief Removes connections that are closed or timed out.
 		 */
 		void	checkTimeouts(void);
+		
+		/**
+		 * @brief Closes a client connection and cleans up resources.
+		 *
+		 * This function removes the connection from the internal map of active connections,
+		 * closes the associated file descriptor, and deletes the corresponding Connection object.
+		 *
+		 * @param fd The file descriptor of the connection to close.
+		 * @param it An iterator pointing to the connection in the _connections map.
+		 */
+		void	closeConnection(int fd, std::map<int, Connection *>::iterator it);
 
+		/**
+		 * @brief Handles an epoll event for a specific file descriptor.
+		 *
+		 * This function identifies the associated connection from the file descriptor,
+		 * verifies its state, and processes different types of epoll events such as
+		 * EPOLLIN (data available to read), EPOLLHUP (hang-up), EPOLLERR (error), and EPOLLRDHUP (peer closed connection).
+		 *
+		 * @param event The epoll_event structure containing the event details.
+		 */
+		void	handleConnectionEvent(struct epoll_event event);
+
+		/**
+		 * @brief Handles an EPOLLIN event (read readiness) on a client connection.
+		 *
+		 * This function reads available data from the connection's file descriptor into a buffer,
+		 * appends the data to the connection's read buffer, and handles errors or disconnection scenarios.
+		 *
+		 * @param fd The file descriptor associated with the EPOLLIN event.
+		 * @param it An iterator pointing to the connection in the _connections map.
+		 */
+		void	handleEpollInEvent(int fd, std::map<int, Connection *>::iterator &it);
 };
 
 #endif

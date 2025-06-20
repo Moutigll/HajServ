@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:48:52 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 14:27:34 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 18:16:39 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,13 @@
 # define CONNECTION_HPP
 
 # include "Port.hpp"
+
+enum e_ConnectionState
+{
+	WRITING,
+	READING,
+	DONE
+};
 
 class Connection
 {
@@ -31,14 +38,41 @@ class Connection
 		 * @return true if the connection is still active, false if it has timed out.
 		 */
 		bool	isTimeout(void) const;
+		void	updateLastActivity(void);
+
+		/**
+		 * @brief Return the state of the connection.
+		 *
+		 * The state can be:
+		 * - WRITING: The connection is currently writing data.
+		 * - READING: The connection is currently reading data.
+		 * - DONE: The connection has completed its operation.
+		 *
+		 * @return The current state of the connection.
+		 */
+		e_ConnectionState	getState(void) const;
+
+		/**
+		 * @brief Append data to the read buffer.
+		 *
+		 * Allocates the buffer if empty,
+		 * otherwise reallocates and appends the new data.
+		 *
+		 * @param buffer Pointer to the data to append.
+		 * @param size Number of bytes to append.
+		 * @return true if the operation succeeded, false on allocation failure.
+		 */
+		bool	appendToReadBuffer(const char *buffer, size_t size);
 
 
 	private:
-		int			_fd;
-		Port		*_port;
-		t_server	*_server;
-		bool		_closed;
-		std::time_t	_lastActivity;
+		int					_fd;
+		Port				*_port;
+		e_ConnectionState	_state;
+		t_server			*_server;
+		bool				_closed;
+		char				*_readBuffer;
+		std::time_t			_lastActivity;
 };
 
 #endif
