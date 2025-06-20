@@ -3,14 +3,14 @@
 /*                                                        :::      ::::::::   */
 /*   HttpError.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/30 13:59:23 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/19 16:48:05 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 19:33:22 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../includes/Http/HttpError.hpp"
+#include "../../includes/Http/HttpError.hpp"
 
 
 std::map<int, std::string> HttpError::_HttpErrors = HttpError::_initHttpErrors();
@@ -19,7 +19,11 @@ HttpError::HttpError() : _code(200) {}
 
 HttpError::HttpError(int code) : _code(code) {}
 
+HttpError::HttpError(const t_server &server) : _code(200), _server(server) {}
+
 HttpError::HttpError(const HttpError &src) : _code(src._code) {}
+
+HttpError::HttpError(int code, const t_server &server) : _code(code), _server(server) {}
 
 HttpError &HttpError::operator=(const HttpError &src)
 {
@@ -83,4 +87,19 @@ std::string HttpError::getMessage(int code) const
     if (it != _HttpErrors.end())
         return it->second;
     return std::string("Unknown Status");
+}
+
+int HttpError::getFd( void )
+{
+    std::string error_page = _server._root_error;
+    std::map<int, std::string>::const_iterator it = _server._errors.find(this->_code);
+    if (it != _server._errors.end())
+    {
+        if (error_page[error_page.length() - 1] != '/')
+            error_page += '/';
+        return open((error_page + it->second).c_str(), O_RDONLY);
+    }
+    g_logger.log(LOG_ERROR, "Failed to find error page for code " + to_string(this->_code) +
+                            " in server block with root error page: " + _server._root_error);
+    return -1;
 }

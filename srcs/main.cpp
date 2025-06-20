@@ -3,14 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:50 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/19 17:02:44 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 19:38:48 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/ServerManager.hpp"
+#include "../includes/Http/HttpError.hpp"
 
 int main(int argc, char **argv)
 {

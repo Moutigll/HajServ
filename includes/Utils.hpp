@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 23:50:18 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/20 15:37:13 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/20 19:14:39 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,9 +20,40 @@
 # include <map>
 # include <sstream>
 # include <string>
+#include <sys/stat.h>
+#include <fcntl.h>
 # include <sys/time.h>
 # include <vector>
 # include <csignal>
+
+struct t_location
+{
+	std::string							_path;
+	std::map<std::string, std::string>	_loc_data;
+	int									_return_code;
+	std::string							_return_uri;
+	bool								_autoindex;
+	std::vector<std::string>			_methods;
+	std::vector<std::string>			_try_files;
+
+	t_location() :_autoindex(false) {}
+};
+
+struct t_server
+{
+	std::vector<std::string>			_methods;
+	std::vector<std::string>			_hosts;
+	std::vector<std::string>			_indexes;
+	std::map<std::string, std::string>	_data;
+	std::map<int, std::string>			_errors;
+	std::string							_root_error;
+	std::vector<t_location>				_locations;
+	std::vector<int>					_ports;
+	size_t								_timeout;
+	size_t								_max_body_size;
+
+	t_server() : _timeout(30), _max_body_size(4096) {} // Default timeout 30s, max body size 4096 bytes
+};
 
 /**
  * @brief Trims leading and trailing whitespace from a string.
