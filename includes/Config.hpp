@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/23 04:01:24 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/20 16:39:20 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/20 18:40:59 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 
 #include "Logger.hpp"
 
-typedef struct s_location
+struct t_location
 {
 	std::string							_path;
 	std::map<std::string, std::string>	_loc_data;
@@ -24,9 +24,11 @@ typedef struct s_location
 	bool								_autoindex;
 	std::vector<std::string>			_methods;
 	std::vector<std::string>			_try_files;
-}	t_location;
 
-typedef struct s_server
+	t_location() :_autoindex(false) {}
+};
+
+struct t_server
 {
 	std::vector<std::string>			_methods;
 	std::vector<std::string>			_hosts;
@@ -38,7 +40,9 @@ typedef struct s_server
 	std::vector<int>					_ports;
 	size_t								_timeout;
 	size_t								_max_body_size;
-}	t_server;
+
+	t_server() : _timeout(30), _max_body_size(4096) {} // Default timeout 30s, max body size 4096 bytes
+};
 
 class Config
 {

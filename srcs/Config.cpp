@@ -6,26 +6,33 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/20 16:41:30 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/20 18:36:19 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Config.hpp"
 
 Config::Config()
-: _finished(false), _log_connections(false), _log_request(false), _log_console(false), _log_file(""), _log_level("none")
-{}
+	: _finished(false), _log_connections(false), _log_request(false), _log_console(false), _log_file(""), _log_level("none"), _servers()
+{
+}
 
 Config::Config(Config const &other)
 {
 	*this = other;
 }
 
-Config & Config::operator=(Config const &other)
+Config &Config::operator=(Config const &other)
 {
 	if (this != &other)
 	{
-		//
+		this->_finished = other._finished;
+		this->_log_connections = other._log_connections;
+		this->_log_request = other._log_request;
+		this->_log_console = other._log_console;
+		this->_log_file = other._log_file;
+		this->_log_level = other._log_level;
+		this->_servers = other._servers;
 	}
 	return *this;
 }
@@ -55,12 +62,12 @@ bool Config::parse(const std::string &filename)
 		line_number++;
 		line = trim(line);
 		if (line.empty() || line[0] == '#')
-			continue ;
+			continue;
 		if (!_inserver && line != "server {")
 		{
 			if (!parseGlobals(line, line_number))
 				return false;
-			continue ;
+			continue;
 		}
 		if (line == "server {")
 			_inserver = true;
@@ -71,18 +78,18 @@ bool Config::parse(const std::string &filename)
 			_inserver = false;
 		}
 	}
-	g_logger.init(_log_file, _log_level == "debug" ? LOG_DEBUG :
-					_log_level == "info" ? LOG_INFO :
-					_log_level == "warning" ? LOG_WARNING :
-					_log_level == "error" ? LOG_ERROR : LOG_CRITICAL,
-					_log_console);
+	g_logger.init(_log_file, _log_level == "debug" ? LOG_DEBUG : _log_level == "info"  ? LOG_INFO
+															 : _log_level == "warning" ? LOG_WARNING
+															 : _log_level == "error"   ? LOG_ERROR
+																					   : LOG_CRITICAL,
+				  _log_console);
 	_finished = true;
 	return true;
 }
 
 /**
  * @brief Extract the second element from a whitespace-separated string.
- * 
+ *
  * This function parses the input string `line` by splitting it at spaces
  * and returns the second element found. If the second element does not exist,
  * it returns an empty string.
@@ -104,7 +111,7 @@ static std::string getSecondElem(std::string &line)
 	return ("");
 }
 
-bool	Config::parseGlobals(std::string &line, int &line_number)
+bool Config::parseGlobals(std::string &line, int &line_number)
 {
 	if (back(line) != ';')
 	{
@@ -135,18 +142,17 @@ bool	Config::parseGlobals(std::string &line, int &line_number)
 	return true;
 }
 
-bool	Config::parseServer(std::ifstream &file, int &line_number)
+bool Config::parseServer(std::ifstream &file, int &line_number)
 {
 	t_server server;
-	server._timeout = 30; // Default timeout value
-	server._max_body_size = 204800; // Default max_body_size value in bytes : 200K
+
 	std::string line;
 	while (std::getline(file, line))
 	{
 		line_number++;
 		line = trim(line);
 		if (line.empty() || line[0] == '#')
-			continue ;
+			continue;
 		if (line == "};")
 		{
 			_servers.push_back(server);
@@ -157,7 +163,7 @@ bool	Config::parseServer(std::ifstream &file, int &line_number)
 			t_location nullloc;
 			if (!parseVectors(line, server, nullloc, false))
 				return false;
-			continue ;
+			continue;
 		}
 		if (line.rfind("location", 0) == 0)
 		{
@@ -168,7 +174,7 @@ bool	Config::parseServer(std::ifstream &file, int &line_number)
 				location._path = value;
 			parseLocation(file, line_number, location);
 			server._locations.push_back(location);
-			continue ;
+			continue;
 		}
 		if (line.rfind("error_pages", 0) == 0)
 		{
@@ -176,7 +182,7 @@ bool	Config::parseServer(std::ifstream &file, int &line_number)
 			if (!value.empty())
 				server._root_error = value;
 			parseErrors(file, line_number, server);
-			continue ;
+			continue;
 		}
 		std::istringstream iss(line);
 		std::string key, value;
@@ -199,7 +205,7 @@ bool	Config::parseServer(std::ifstream &file, int &line_number)
 			}
 			if (key == "timeout")
 				server._timeout = size;
-			continue ;
+			continue;
 		}
 		if (key == "max_body_size")
 		{
@@ -210,35 +216,27 @@ bool	Config::parseServer(std::ifstream &file, int &line_number)
 				return false;
 			}
 			if (value[value.length() - 1] == 'G')
-			{
 				server._max_body_size = size * 1024 * 1024 * 1024; // Convert GB to bytes
-			}
 			else if (value[value.length() - 1] == 'M')
-			{
 				server._max_body_size = size * 1024 * 1024; // Convert MB to bytes
-			}
 			else if (value[value.length() - 1] == 'K')
-			{
 				server._max_body_size = size * 1024; // Convert KB to bytes
-			}
 			else
-			{
 				server._max_body_size = size; // Default case, assume bytes
-			}
-			continue ;
+			continue;
 		}
-		
+
 		server._data[key] = value;
 	}
 	std::cerr << RED << "Config file finished without the end of bracket of server which is '};'." << RESET << std::endl;
 	return false;
 }
 
-std::vector<std::string>* getTargetVector(const std::string& line, bool is_loc, t_server& server, t_location& loc, bool& is_port)
+std::vector<std::string> *getTargetVector(const std::string &line, bool is_loc, t_server &server, t_location &loc, bool &is_port)
 {
 	is_port = false;
 
-	std::map<std::string, std::vector<std::string>*> map;
+	std::map<std::string, std::vector<std::string> *> map;
 
 	if (is_loc)
 	{
@@ -248,8 +246,8 @@ std::vector<std::string>* getTargetVector(const std::string& line, bool is_loc, 
 	else
 	{
 		map["allowed_methods"] = &server._methods;
-		map["server_name"]    = &server._hosts;
-		map["index"]          = &server._indexes;
+		map["server_name"] = &server._hosts;
+		map["index"] = &server._indexes;
 
 		if (line.rfind("listen", 0) == 0)
 		{
@@ -258,19 +256,18 @@ std::vector<std::string>* getTargetVector(const std::string& line, bool is_loc, 
 		}
 	}
 
-	for (std::map<std::string, std::vector<std::string>*>::iterator it = map.begin(); it != map.end(); ++it)
+	for (std::map<std::string, std::vector<std::string> *>::iterator it = map.begin(); it != map.end(); ++it)
 		if (line.rfind(it->first, 0) == 0)
 			return it->second;
 
 	return NULL;
 }
 
-
-bool	Config::parseVectors(std::string &line, t_server &server, t_location &loc, bool is_loc)
+bool Config::parseVectors(std::string &line, t_server &server, t_location &loc, bool is_loc)
 {
 	bool is_port = false;
 
-	std::vector<std::string>* target_vector = getTargetVector(line, is_loc, server, loc, is_port);
+	std::vector<std::string> *target_vector = getTargetVector(line, is_loc, server, loc, is_port);
 
 	std::istringstream iss(line);
 	std::string t;
@@ -292,7 +289,7 @@ bool	Config::parseVectors(std::string &line, t_server &server, t_location &loc, 
 				server._ports.push_back(port);
 				continue;
 			}
-			
+
 			target_vector->push_back(t);
 		}
 		i++;
@@ -308,7 +305,7 @@ bool Config::parseLocation(std::ifstream &file, int &line_number, t_location &lo
 		line_number++;
 		line = trim(line);
 		if (line.empty() || line[0] == '#')
-			continue ;
+			continue;
 		if (line == "}")
 			return true;
 		std::istringstream iss(line);
@@ -316,12 +313,12 @@ bool Config::parseLocation(std::ifstream &file, int &line_number, t_location &lo
 		{
 			t_server nullserv;
 			parseVectors(line, nullserv, loc, true);
-			continue ;
+			continue;
 		}
 		if (line.rfind("autoindex", 0) == 0)
 		{
 			loc._autoindex = getSecondElem(line) == "on";
-			continue ;
+			continue;
 		}
 		if (line.rfind("return", 0) == 0)
 		{
@@ -333,14 +330,14 @@ bool Config::parseLocation(std::ifstream &file, int &line_number, t_location &lo
 
 			if (!(iss >> code) || !(iss >> url) || url == ";")
 			{
-				std::cerr << RED  << "Error: malformed 'return' directive — missing code or URL at line " << line_number << ": '" << line << "'" << RESET << std::endl;
+				std::cerr << RED << "Error: malformed 'return' directive — missing code or URL at line " << line_number << ": '" << line << "'" << RESET << std::endl;
 				return false;
 			}
 			if (!url.empty() && url[url.length() - 1] == ';')
 				url = url.substr(0, url.length() - 1);
-			loc._return_code= code;
+			loc._return_code = code;
 			loc._return_uri = url;
-			continue ;
+			continue;
 		}
 		std::string key, value;
 
@@ -361,7 +358,7 @@ bool Config::parseErrors(std::ifstream &file, int &line_number, t_server &server
 		line_number++;
 		line = trim(line);
 		if (line.empty() || line[0] == '#')
-			continue ;
+			continue;
 		if (line == "}")
 			return true;
 		std::istringstream iss(line);
@@ -390,7 +387,7 @@ const t_server &Config::getServerBlock(size_t index) const
 	return this->_servers[0];
 }
 
-size_t	Config::getServerCount() const
+size_t Config::getServerCount() const
 {
 	return this->_servers.size();
 }
@@ -406,8 +403,8 @@ size_t	Config::getServerCount() const
  * and sends it to the logger.
  */
 
-static void	logVectorStr(std::string &out, const std::string &label,
-							const std::vector<std::string> &vec, const char *color)
+static void logVectorStr(std::string &out, const std::string &label,
+						 const std::vector<std::string> &vec, const char *color)
 {
 	out += std::string(BRIGHT_YELLOW "\t" + label + ": " RESET);
 	for (size_t i = 0; i < vec.size(); i++)
@@ -419,20 +416,20 @@ static void	logVectorStr(std::string &out, const std::string &label,
 	out += "\n";
 }
 
-template<typename K, typename V>
-static void	logMapStr(std::string &out, const std::string &label,
-						const std::map<K, V> &mapData,
-						const char *keyColor, const char *valColor)
+template <typename K, typename V>
+static void logMapStr(std::string &out, const std::string &label,
+					  const std::map<K, V> &mapData,
+					  const char *keyColor, const char *valColor)
 {
 	out += std::string(BRIGHT_BLUE "\t" + label + ":" RESET) + "\n";
 	for (typename std::map<K, V>::const_iterator it = mapData.begin(); it != mapData.end(); ++it)
 	{
 		out += std::string("\t\t") + keyColor + to_string(it->first) + RESET + ": " +
-			valColor + to_string(it->second) + RESET + "\n";
+			   valColor + to_string(it->second) + RESET + "\n";
 	}
 }
 
-static void	printLocationStr(std::string &out, const t_location &loc, size_t index)
+static void printLocationStr(std::string &out, const t_location &loc, size_t index)
 {
 	out += std::string(BRIGHT_PURPLE "\tLocation [") + to_string(index) + "]" RESET + "\n";
 	out += std::string("\t\t") + BRIGHT_CYAN "Path: " RESET + BRIGHT_WHITE + loc._path + RESET + "\n";
@@ -441,7 +438,7 @@ static void	printLocationStr(std::string &out, const t_location &loc, size_t ind
 	if (loc._return_code != 0)
 	{
 		out += std::string("\t\t") + BRIGHT_CYAN "Return: " RESET +
-			to_string(loc._return_code) + " " + BRIGHT_MAGENTA + loc._return_uri + RESET + "\n";
+			   to_string(loc._return_code) + " " + BRIGHT_MAGENTA + loc._return_uri + RESET + "\n";
 	}
 
 	logVectorStr(out, "Methods", loc._methods, CYAN);
@@ -450,9 +447,9 @@ static void	printLocationStr(std::string &out, const t_location &loc, size_t ind
 	logMapStr(out, "Additional data", loc._loc_data, BRIGHT_WHITE, BRIGHT_YELLOW);
 }
 
-void	Config::logConfig() const
+void Config::logConfig() const
 {
-	std::string	out;
+	std::string out;
 
 	out += BRIGHT_CYAN "\nGlobal settings:" RESET "\n";
 	out += std::string("\tlog_level: ") + BRIGHT_WHITE + _log_level + RESET + "\n";
