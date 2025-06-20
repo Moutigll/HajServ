@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 16:45:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/19 19:02:26 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 15:12:33 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -89,6 +89,8 @@ class ServerManager
 		 *             Must not be NULL and must have a valid socket fd.
 		 */
 		void	newConnection(Port *port);
+
+		void	handleConnectionEvent(struct epoll_event event);
 
 		/**
 		 * @brief Removes connections that are closed or timed out.

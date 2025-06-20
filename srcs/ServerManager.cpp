@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:01 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/19 19:24:09 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 15:21:19 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -146,6 +146,8 @@ void	ServerManager::start(void)
 
 			if (port)
 				newConnection(port);
+			else
+				handleConnectionEvent(events[i]);
 			++i;
 		}
 		this->checkTimeouts();
@@ -178,7 +180,15 @@ void	ServerManager::newConnection(Port *port)
 
 	this->_connections[client_fd] = conn;
 
-	if (!this->addToEpoll(client_fd, EPOLLIN | EPOLLET))
+	/*
+	* EPOLLIN: Indicates that the file descriptor is ready for reading.
+	* EPOLLET: Edge-triggered mode, meaning events are reported only when the state
+	*          changes, not continuously while the condition is true.
+	* EPOLLRDHUP: Indicates that the remote end has closed the connection.
+	* EPOLLHUP: Indicates that the file descriptor has been hung up.
+	* EPOLLERR: Indicates an error condition on the file descriptor.
+	*/
+	if (!this->addToEpoll(client_fd, EPOLLIN | EPOLLET | EPOLLRDHUP | EPOLLHUP | EPOLLERR))
 	{
 		close(client_fd);
 		delete conn;
@@ -188,6 +198,27 @@ void	ServerManager::newConnection(Port *port)
 
 	g_logger.log(LOG_DEBUG, "New connection accepted on fd " + to_string(client_fd));
 }
+
+void	ServerManager::handleConnectionEvent(struct epoll_event event)
+{
+	int	fd = event.data.fd;
+
+	if ((event.events & EPOLLHUP) || (event.events & EPOLLERR))
+	{
+		g_logger.log(LOG_DEBUG, "Client on fd " + to_string(fd) + " disconnected or error");
+		std::map<int, Connection *>::iterator it = this->_connections.find(fd);
+		if (it != this->_connections.end())
+		{
+			epoll_ctl(this->_epollFd, EPOLL_CTL_DEL, fd, NULL);
+
+			close(fd);
+			delete it->second;
+			this->_connections.erase(it);
+		}
+		return;
+	}
+}
+
 
 void	ServerManager::checkTimeouts(void)
 {
