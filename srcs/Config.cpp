@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/20 15:43:54 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/20 16:37:03 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -139,6 +139,7 @@ bool	Config::parseServer(std::ifstream &file, int &line_number)
 {
 	t_server server;
 	server._timeout = 30; // Default timeout value
+	server._max_body_size = 2e+8; // Default max_body_size value in bytes
 	std::string line;
 	while (std::getline(file, line))
 	{
@@ -185,7 +186,52 @@ bool	Config::parseServer(std::ifstream &file, int &line_number)
 			std::cerr << RED << "Syntax error at line " << line_number << ": '" << line << "'. No value was found." << RESET << std::endl;
 			return false;
 		}
+
 		value = value.substr(0, value.length() - 1);
+
+		if (key == "timeout")
+		{
+			long long size = atoll(value.c_str());
+			if (size <= 0)
+			{
+				std::cerr << RED << "Error: Invalid value '" << value << "' at line " << line_number << "." << RESET << std::endl;
+				return false;
+			}
+			if (key == "timeout")
+				server._timeout = size;
+			continue ;
+		}
+		if (key == "max_body_size")
+		{
+			double size = atof(value.c_str());
+			if (size <= 0)
+			{
+				std::cerr << RED << "Error: Invalid value '" << value << "' at line " << line_number << "." << RESET << std::endl;
+				return false;
+			}
+			if (value[value.length() - 1] == 'G')
+			{
+				server._max_body_size = size * 1024 * 1024 * 1024; // Convert GB to bytes
+			}
+			else if (value[value.length() - 1] == 'M')
+			{
+				server._max_body_size = size * 1024 * 1024; // Convert MB to bytes
+			}
+			else if (value[value.length() - 1] == 'K')
+			{
+				server._max_body_size = size * 1024; // Convert KB to bytes
+			}
+			else if (value[value.length() - 1] == 'B')
+			{
+				server._max_body_size = size; // Already in bytes
+			}
+			else
+			{
+				server._max_body_size = size; // Default case, assume bytes
+			}
+			continue ;
+		}
+		
 		server._data[key] = value;
 	}
 	std::cerr << RED << "Config file finished without the end of bracket of server which is '};'." << RESET << std::endl;
@@ -425,6 +471,8 @@ void	Config::logConfig() const
 
 		logVectorStr(out, "Methods", srv._methods, CYAN);
 		logVectorStr(out, "Server names", srv._hosts, BRIGHT_CYAN);
+		out += BRIGHT_YELLOW + std::string("\tMax body size: ") + BRIGHT_CYAN + to_string(srv._max_body_size) + " bytes" RESET + "\n";
+		out += BRIGHT_YELLOW + std::string("\tTimeout: ") + BRIGHT_CYAN + to_string(srv._timeout) + " s" RESET + "\n";
 		out += std::string(BRIGHT_BLUE "\tPorts (") + to_string(srv._ports.size()) + "):" RESET + "\n";
 		for (size_t j = 0; j < srv._ports.size(); j++)
 			out += std::string("\t\t") + BRIGHT_YELLOW + to_string(srv._ports[j]) + RESET + "\n";
