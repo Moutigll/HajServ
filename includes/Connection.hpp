@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:48:52 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 22:44:30 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/21 16:55:50 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -75,6 +75,9 @@ class Connection
 		 */
 		bool	parseRequest(void);
 
+		char	*getReadBuffer(void);
+		void	successWrite(void);
+
 	private:
 		int					_fd;
 		Port				*_port;
@@ -82,6 +85,7 @@ class Connection
 		t_server			*_server;
 		bool				_closed;
 		char				*_readBuffer;
+		char				*_writeBuffer;
 		std::time_t			_lastActivity;
 		HttpTransaction		*_httpTransaction;
 		HttpRequest			*_httpRequest;

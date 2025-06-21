@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpError.hpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/30 13:59:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/20 19:32:58 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/21 16:19:32 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,9 +27,10 @@ class HttpError
 		HttpError &operator=(const HttpError &src);
 		~HttpError();
 
+		void			setCode(int code);
 		std::string		getMessage(int code) const;
 		int				getCode() const { return _code; }
-		int				getFd( void );
+		std::string		getFilePath(void);
 	private:
 		int			_code;
 		t_server	_server;

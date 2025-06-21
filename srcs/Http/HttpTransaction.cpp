@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:16:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 21:53:15 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 23:24:10 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,4 +55,16 @@ void HttpTransaction::log() const {
 
 int HttpTransaction::getStatus() const {
 	return _status;
+}
+
+std::string HttpTransaction::getMethod() const {
+	return _method;
+}
+
+std::string HttpTransaction::getRequest() const {
+	return _request;
+}
+
+std::string HttpTransaction::getProtocol() const {
+	return _protocol;
 }

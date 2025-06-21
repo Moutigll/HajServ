@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:26:55 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/18 19:11:29 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/21 16:52:49 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,11 +18,13 @@
 #include <unistd.h>
 
 #include "HttpTransaction.hpp"
+#include "HttpRequest.hpp"
 #include "../Config.hpp"
 
 class HttpResponse : public HttpTransaction {
 	public:
 		HttpResponse(const t_server &server);
+		HttpResponse(const t_server &server, HttpRequest &request);
 		HttpResponse(const HttpResponse &other);
 		HttpResponse &operator=(const HttpResponse &other);
 		virtual ~HttpResponse();
@@ -33,16 +35,26 @@ class HttpResponse : public HttpTransaction {
 		void	setStatus(int code);
 		void	addHeader(const std::string &name, const std::string &value);
 		void	setBody(const std::string &body);
+		void	setFilePath(const std::string &filePath);
 
 		void	construct();
-		bool	sendResponse();
+		char	*sendResponse();
 
 		HttpError	getStatus() const;
 	private:
 		t_server	_server;
 		std::string	_response;
-		int			readFd;
-		int			socketFd;
+		HttpError	_ErrorStatus;
+		std::string	_filePath;
+		bool		_isHeadersSent;
+		int			_readFd;
+
+		/**
+		 * @brief Set the headers for a file response.
+		 * If the file exists, it sets the Content-Length and Content-Type headers.
+		 * If the file does not exist, it sets a 404 Not Found status and prepares an error response.
+		 */
+		void		setFileHeaders();
 };
 
 #endif

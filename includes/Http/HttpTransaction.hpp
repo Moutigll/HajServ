@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:11:03 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 22:42:13 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 23:23:55 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,7 +26,10 @@ class HttpTransaction {
 		virtual bool	isComplete() const = 0;
 		void			log() const;
 
-		int		getStatus() const;
+		int			getStatus() const;
+		std::string	getMethod() const;
+		std::string	getRequest() const;
+		std::string	getProtocol() const;
 
 	protected:
 		std::string							_method;

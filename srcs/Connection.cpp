@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:12 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 22:40:51 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/21 16:57:20 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -133,11 +133,11 @@ void	Connection::switchToErrorState(int errorCode)
 {
 	if (this->_httpResponse != NULL)
 		delete this->_httpResponse;
-	//this->_httpResponse = new HttpResponse(*this->_server);
-	//if (this->_httpResponse == NULL)
-		//return;
-	//this->_httpResponse->setStatus(errorCode);
-	(void)errorCode;
+	this->_httpTransaction = NULL;
+	this->_httpResponse = new HttpResponse(*this->_server);
+	if (this->_httpResponse == NULL)
+		return;
+	this->_httpResponse->setStatus(errorCode);
 	this->_state = WRITING;
 }
 
@@ -150,11 +150,9 @@ bool Connection::parseRequest(void)
 	}
 	
 	if (this->_httpTransaction == NULL)
-	{
 		this->_httpTransaction = new HttpRequest();
-		if (this->_httpTransaction == NULL)
-			return (switchToErrorState(500), false); // Allocation failed, switch to error state 500 internal server error
-	}
+	if (this->_httpTransaction == NULL)
+		return (switchToErrorState(500), false); // Allocation failed, switch to error state 500 internal server error
 
 	HttpRequest* request = dynamic_cast<HttpRequest*>(this->_httpTransaction);
 	if (request == NULL)
@@ -165,7 +163,6 @@ bool Connection::parseRequest(void)
 	{
 		switchToErrorState(request->getStatus());
 		delete this->_httpTransaction;
-		this->_httpTransaction = NULL;
 		return true;
 	}
 	else if (status == 0)
@@ -178,4 +175,29 @@ bool Connection::parseRequest(void)
 	_httpRequest->log();
 	this->_state = WRITING;
 	return true; // Request is complete, switch to writing state
+}
+
+char *Connection::getReadBuffer(void)
+{
+	if (this->_writeBuffer != NULL)
+		return this->_writeBuffer;
+	if (this->_httpTransaction == NULL)
+		this->_httpTransaction = new HttpResponse(*this->_server);
+	if (this->_httpTransaction == NULL)
+		return NULL;
+	HttpResponse* response = dynamic_cast<HttpResponse*>(this->_httpTransaction);
+	_writeBuffer = response->sendResponse();
+	if (response->isComplete())
+	{
+		delete this->_httpTransaction;
+		this->_httpTransaction = NULL;
+		this->_state = DONE; // Request is complete, switch to done state
+	}
+	return this->_writeBuffer;
+}
+
+void Connection::successWrite(void)
+{
+	delete[] this->_writeBuffer;
+	this->_writeBuffer = NULL; // Clear write buffer after successful write
 }

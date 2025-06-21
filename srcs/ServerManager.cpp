@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:01 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 22:18:03 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/21 16:46:11 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -268,24 +268,7 @@ void	ServerManager::handleConnectionEvent(struct epoll_event event)
 	if (event.events & EPOLLIN)
 		handleEpollInEvent(fd, it);
 	else if (event.events & EPOLLOUT)
-	{
-		const char	*response;
-
-		response = "HTTP/1.1 200 OK\r\n"
-				   "Content-Length: 11\r\n"
-				   "Content-Type: text/plain\r\n"
-				   "Connection: close\r\n"
-				   "\r\n"
-				   "Hello world";
-		ssize_t	bytes_sent = send(fd, response, strlen(response), 0);
-		if (bytes_sent < 0)
-		{
-			g_logger.log(LOG_ERROR, "Failed to send response on fd " + to_string(fd) + ": " + std::string(strerror(errno)));
-			closeConnection(fd, it);
-			return;
-		}
-		g_logger.log(LOG_DEBUG, "Sent response on fd " + to_string(fd) + ": [" + std::string(response) + "]");
-	}
+		handleEpollOutEvent(fd, it);
 	else
 		g_logger.log(LOG_WARNING, "Unhandled event on fd " + to_string(fd) + ": " + to_string(event.events));
 }
@@ -323,6 +306,53 @@ void	ServerManager::handleEpollInEvent(int fd, std::map<int, Connection *>::iter
 		updateEpoll(fd, EPOLLOUT | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_MOD);
 }
 
+void	ServerManager::handleEpollOutEvent(int fd, std::map<int, Connection *>::iterator &it)
+{
+	if (it->second->getState() != WRITING)
+	{
+		g_logger.log(LOG_WARNING, "Received EPOLLOUT event on fd " + to_string(fd) + " but connection is not in WRITING state");
+		return;
+	}
+	
+	const char *write_buffer = it->second->getReadBuffer();
+	if (!write_buffer)
+	{
+		g_logger.log(LOG_ERROR, "No write buffer available for fd " + to_string(fd));
+		updateEpoll(fd, EPOLLIN | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_MOD);
+		return;
+	}
+	ssize_t	bytes_written = send(fd, write_buffer, strlen(write_buffer), 0);
+	if (bytes_written < 0)
+	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+		{
+			g_logger.log(LOG_DEBUG, "EAGAIN or EWOULDBLOCK on fd " + to_string(fd) + ", will retry later");
+			return;
+		}
+		else
+		{
+			g_logger.log(LOG_ERROR, "Error writing to fd " + to_string(fd) + ": " + std::string(strerror(errno)));
+			closeConnection(fd, it);
+			return;
+		}
+	}
+	else if (bytes_written == 0)
+	{
+		g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " closed by peer during write");
+		closeConnection(fd, it);
+		return;
+	}
+	it->second->successWrite();
+	if (it->second->getState() != WRITING)
+	{
+		g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " finished writing, switching to READING state");
+		updateEpoll(fd, EPOLLIN | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_MOD);
+	}
+	else
+		g_logger.log(LOG_DEBUG, "Partial write on fd " + to_string(fd) + ", " + to_string(bytes_written) + " bytes written, waiting for more data");
+	
+}
+
 
 /*--------------------
 	Others
@@ -351,9 +381,7 @@ void	ServerManager::checkTimeouts(void)
 			this->_connections.erase(temp);
 		}
 		else
-		{
 			++it;
-		}
 	}
 }
 

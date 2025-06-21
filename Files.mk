@@ -7,4 +7,5 @@ FILES		=	srcs/Config \
 				srcs/Utils \
 				srcs/Http/HttpTransaction \
 				srcs/Http/HttpRequest \
+				srcs/Http/HttpResponse \
 				srcs/Http/HttpError

@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 16:45:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 19:51:59 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/20 22:54:51 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -128,6 +128,8 @@ class ServerManager
 		 * @param it An iterator pointing to the connection in the _connections map.
 		 */
 		void	handleEpollInEvent(int fd, std::map<int, Connection *>::iterator &it);
+
+		void	handleEpollOutEvent(int fd, std::map<int, Connection *>::iterator &it);
 };
 
 #endif
