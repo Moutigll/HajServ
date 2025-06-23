@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:24:31 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 21:31:45 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/23 23:21:59 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 #define HTTP_REQUEST_HPP
 
 #include "HttpTransaction.hpp"
+#include "Port.hpp"
 #include <string>
 #include <map>
 
@@ -39,6 +40,12 @@ public:
 	 */	
 	int				parse(const char *buffer);
 
+	/**
+	 * @brief Set the port on which the request was received.
+	 * @param port Pointer to the Port object.
+	 */
+	void			setPort(Port *port);
+
 private:
 	enum ParseState {
 		PS_REQUEST_LINE,
@@ -50,7 +57,9 @@ private:
 
 	ParseState			_parse_state;
 	std::string			_accum; // Data not yet parsed
+	std::string			_host; // Host header value
 	size_t				_content_length;
+	Port				*_port; // Port on which the request was received
 	
 	/**
 	 * @brief Parse the request line from the given line.

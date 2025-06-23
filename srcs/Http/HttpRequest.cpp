@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/20 21:05:28 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 22:45:18 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/23 23:54:44 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,15 +40,18 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &other) {
 
 HttpRequest::~HttpRequest() {}
 
-bool HttpRequest::isComplete() const {
+bool HttpRequest::isComplete() const
+{
 	return _parse_state == PS_DONE;
 }
 
-int HttpRequest::parse(const char *buffer) {
+int HttpRequest::parse(const char *buffer)
+{
 	if (_parse_state == PS_ERROR || _parse_state == PS_DONE)
 		return _parse_state == PS_DONE ? 1 : -1;
 
 	_accum.append(buffer);
+	std::cout << "Accumulated data: " << _accum << std::endl; // Debugging output
 
 	if (_parse_state == PS_REQUEST_LINE) {
 		size_t pos = _accum.find("\r\n");
@@ -59,7 +62,7 @@ int HttpRequest::parse(const char *buffer) {
 			_parse_state = PS_ERROR;
 			return -1;
 		}
-		_accum.erase(0, pos + 2); // remove the request line including the last \r\n
+		_accum.clear(); // remove the request line including the last \r\n
 		_parse_state = PS_HEADERS;
 	}
 
@@ -119,13 +122,19 @@ bool	HttpRequest::parseRequestLine(const std::string &line)
 		return false;
 	}
 
-	if (method != "GET" && method != "POST" && method != "HEAD" && method != "PUT" && method != "DELETE" && method != "OPTIONS" && method != "TRACE" && method != "CONNECT" && method != "PATCH")
+	if (method != "GET" && method != "POST" && method != "DELETE")
 	{
 		_status = 405; // Method Not Allowed
 		return false;
 	}
 	_method = method;
-	_request = request;
+	_request = percentDecode(request); // Decode percent-encoded characters in the request URI
+	if (_request.empty() || _request[0] != '/' || _request.find("..") != std::string::npos)
+	{
+		_status = 400; // Bad Request : empty request URI
+		return false;
+	}
+	std::cout << "Request URI: " << _request << std::endl; // Debugging output
 	_protocol = protocol;
 	return true;
 }
@@ -150,6 +159,8 @@ bool	HttpRequest::parseHeaders(const std::string &headers)
 		std::string	key = line.substr(0, colon);
 		std::string	value = line.substr(colon + 1);
 
+		toLowercase(value);
+
 		// trim initial spaces/tabs in value
 		while (!value.empty() && (value[0] == ' ' || value[0] == '\t'))
 			value.erase(0, 1);
@@ -164,8 +175,13 @@ bool	HttpRequest::parseHeaders(const std::string &headers)
 
 		_headers[key] = value;
 
+		if (key == "Connection" && value == "keep-alive")
+			_connectionKeepAlive = true; // Any other value means the connection is not kept alive
+
 		if (_protocol == "HTTP/1.1" && key == "Host")
 			has_host = true;
+		if (key == "Host")
+			_host = value; // Store the Host header value
 	}
 
 	if (_protocol == "HTTP/1.1" && !has_host)
@@ -178,7 +194,8 @@ bool	HttpRequest::parseHeaders(const std::string &headers)
 }
 
 
-bool HttpRequest::parseBody(const std::string &body) {
+bool HttpRequest::parseBody(const std::string &body)
+{
 	_body = body;
 	return true;
 }
@@ -187,4 +204,8 @@ size_t HttpRequest::getContentLength(const std::map<std::string, std::string> &h
 	std::map<std::string,std::string>::const_iterator it = hdrs.find("Content-Length");
 	if (it == hdrs.end()) return 0;
 	return std::strtoul(it->second.c_str(), NULL, 10);
+}
+
+void HttpRequest::setPort(Port *port) {
+	_port = port;
 }
