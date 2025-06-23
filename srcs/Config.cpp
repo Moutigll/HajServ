@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/20 18:36:19 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/24 00:17:44 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -168,11 +168,17 @@ bool Config::parseServer(std::ifstream &file, int &line_number)
 		if (line.rfind("location", 0) == 0)
 		{
 			t_location location;
-			location._return_code = 0;
 			std::string value = getSecondElem(line);
 			if (!value.empty())
 				location._path = value;
 			parseLocation(file, line_number, location);
+			if (location._path.empty() || location._root.empty())
+			{
+				std::cerr << RED << "Error: Location parsing error." << RESET << std::endl;
+				return false;
+			}
+			if (location._indexes.empty())
+				location._indexes.push_back("");
 			server._locations.push_back(location);
 			continue;
 		}
@@ -343,7 +349,18 @@ bool Config::parseLocation(std::ifstream &file, int &line_number, t_location &lo
 
 		if (!(iss >> key >> value) || (iss >> std::ws && !iss.eof()))
 			std::cerr << RED << "Syntax error at line " << line_number << ": '" << line << "'. No value was found." << RESET << std::endl;
+
 		value = value.substr(0, value.length() - 1);
+		if (key == "root")
+		{
+			loc._root = value;
+			continue;
+		}
+		if (key == "index")
+		{
+			loc._indexes.push_back(value);
+			continue;
+		}
 		loc._loc_data[key] = value;
 	}
 	std::cerr << RED << "Location parsing finished without the end of bracket of server which is '}'." << RESET << std::endl;

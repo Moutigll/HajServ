@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 23:50:18 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/24 00:02:30 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/24 00:12:26 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,16 +29,16 @@
 struct t_location
 {
 	std::string							_path;
-	std::string							_root; // to implement
+	std::string							_root;
 	std::map<std::string, std::string>	_loc_data;
 	int									_return_code;
 	std::string							_return_uri;
 	bool								_autoindex;
 	std::vector<std::string>			_methods;
 	std::vector<std::string>			_try_files;
-	std::vector<std::string>			_indexes; //to implement
+	std::vector<std::string>			_indexes;
 
-	t_location() :_root(""), _autoindex(false), _indexes("index.html", "index.htm") {}
+	t_location() :_root(""), _return_code(0),_autoindex(false) {}
 };
 
 struct t_server
