@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/21 17:07:05 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/23 17:02:26 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,6 +60,7 @@ void HttpResponse::setStatus(const HttpError &status) {
 }
 
 void HttpResponse::setStatus(int code) {
+	_ErrorStatus.setCode(code);
 	_status = code;
 }
 
@@ -78,6 +79,7 @@ void HttpResponse::setFilePath(const std::string &filePath) {
 void HttpResponse::construct() {
 	_response.clear();
 	_response += _protocol + " " + to_string(_status) + " " + _ErrorStatus.getMessage(_status) + "\r\n";
+	std::cout << "Constructing response for status: " << _status << std::endl;
 	if (!_body.empty())
 		_response += "Content-Length: " + to_string(_body.size()) + "\r\n";
 	else
@@ -140,6 +142,7 @@ void	HttpResponse::setFileHeaders() {
 	{
 		if (_ErrorStatus.getCode() == 200)
 			_ErrorStatus.setCode(_status);
+		_ErrorStatus.setServer(_server);
 		_filePath = _ErrorStatus.getFilePath();
 		if (_filePath.empty()) {
 			g_logger.log(LOG_ERROR, "No error page defined for status code " + to_string(_status));

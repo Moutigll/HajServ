@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:12 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/21 16:57:20 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/23 17:19:53 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,11 +14,11 @@
 
 Connection::Connection(void)
 	: _fd(-1), _port(NULL), _state(READING), _server(NULL),
-	  _closed(true), _readBuffer(NULL), _lastActivity(std::time(NULL)), _httpTransaction(NULL), _httpRequest(NULL), _httpResponse(NULL) {}
+	  _closed(true), _readBuffer(NULL), _writeBuffer(NULL), _lastActivity(std::time(NULL)), _httpTransaction(NULL), _httpRequest(NULL), _httpResponse(NULL) {}
 
 Connection::Connection(int fd, Port *port)
 	: _fd(fd), _port(port), _state(READING), _server(NULL),
-	  _closed(fd < 0), _readBuffer(NULL), _lastActivity(std::time(NULL)), _httpTransaction(NULL), _httpRequest(NULL), _httpResponse(NULL)
+	  _closed(fd < 0), _readBuffer(NULL), _writeBuffer(NULL), _lastActivity(std::time(NULL)), _httpTransaction(NULL), _httpRequest(NULL), _httpResponse(NULL)
 {
 	if (port != NULL)
 	{
@@ -32,7 +32,7 @@ Connection::Connection(int fd, Port *port)
 
 Connection::Connection(const Connection &other)
 	: _fd(other._fd), _port(other._port), _state(other._state),
-	  _server(other._server), _closed(other._closed), _readBuffer(NULL),
+	  _server(other._server), _closed(other._closed), _readBuffer(NULL), _writeBuffer(NULL),
 	  _lastActivity(other._lastActivity), _httpTransaction(other._httpTransaction), _httpRequest(other._httpRequest), _httpResponse(other._httpResponse)
 {
 	if (other._readBuffer != NULL)
@@ -75,10 +75,6 @@ Connection &Connection::operator=(const Connection &other)
 Connection::~Connection(void)
 {
 	delete[] this->_readBuffer;
-	if (this->_httpRequest != NULL)
-		delete this->_httpRequest;
-	if (this->_httpResponse != NULL)
-		delete this->_httpResponse;
 }
 
 bool	Connection::isClosed(void) const
@@ -131,12 +127,14 @@ bool	Connection::appendToReadBuffer(const char *buffer, size_t size)
 
 void	Connection::switchToErrorState(int errorCode)
 {
+	g_logger.log(LOG_DEBUG, "Switching to error state with code: " + to_string(errorCode) + " on fd: " + to_string(this->_fd));
 	if (this->_httpResponse != NULL)
 		delete this->_httpResponse;
 	this->_httpTransaction = NULL;
 	this->_httpResponse = new HttpResponse(*this->_server);
 	if (this->_httpResponse == NULL)
 		return;
+	_httpTransaction = _httpResponse;
 	this->_httpResponse->setStatus(errorCode);
 	this->_state = WRITING;
 }
@@ -162,7 +160,7 @@ bool Connection::parseRequest(void)
 	if (status == -1)
 	{
 		switchToErrorState(request->getStatus());
-		delete this->_httpTransaction;
+		delete request;
 		return true;
 	}
 	else if (status == 0)

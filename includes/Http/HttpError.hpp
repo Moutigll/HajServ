@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/30 13:59:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/21 16:19:32 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/23 17:01:21 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,7 @@ class HttpError
 		~HttpError();
 
 		void			setCode(int code);
+		void			setServer(const t_server &server);
 		std::string		getMessage(int code) const;
 		int				getCode() const { return _code; }
 		std::string		getFilePath(void);
