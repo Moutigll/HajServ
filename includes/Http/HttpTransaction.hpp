@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:11:03 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 23:23:55 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/23 22:53:37 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,10 +30,12 @@ class HttpTransaction {
 		std::string	getMethod() const;
 		std::string	getRequest() const;
 		std::string	getProtocol() const;
+		bool		isConnectionKeepAlive() const;
 
 	protected:
 		std::string							_method;
 		std::string							_request;
+		bool								_connectionKeepAlive;
 		std::string							_protocol;
 		std::map<std::string, std::string>	_headers;
 		std::string							_body;

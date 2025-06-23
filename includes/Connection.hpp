@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:48:52 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/21 16:55:50 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/23 20:09:55 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -89,7 +89,6 @@ class Connection
 		std::time_t			_lastActivity;
 		HttpTransaction		*_httpTransaction;
 		HttpRequest			*_httpRequest;
-		HttpResponse		*_httpResponse;
 		
 		/**
 		 * @brief Switch the connection to an error state.

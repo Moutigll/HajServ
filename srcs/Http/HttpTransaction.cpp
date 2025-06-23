@@ -6,18 +6,19 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:16:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 23:24:10 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/23 23:00:39 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Http/HttpTransaction.hpp"
 
 HttpTransaction::HttpTransaction()
-	: _isComplete(false) {}
+	: _connectionKeepAlive(false), _isComplete(false) {}
 
 HttpTransaction::HttpTransaction(const HttpTransaction &other)
 	: _method(other._method),
 	  _request(other._request),
+	  _connectionKeepAlive(other._connectionKeepAlive),
 	  _protocol(other._protocol),
 	  _headers(other._headers),
 	  _body(other._body),
@@ -28,6 +29,7 @@ HttpTransaction &HttpTransaction::operator=(const HttpTransaction &other) {
 	if (this != &other) {
 		_request = other._request;
 		_method = other._method;
+		_connectionKeepAlive = other._connectionKeepAlive;
 		_protocol = other._protocol;
 		_headers = other._headers;
 		_body = other._body;
@@ -67,4 +69,8 @@ std::string HttpTransaction::getRequest() const {
 
 std::string HttpTransaction::getProtocol() const {
 	return _protocol;
+}
+
+bool HttpTransaction::isConnectionKeepAlive() const {
+	return _connectionKeepAlive;
 }

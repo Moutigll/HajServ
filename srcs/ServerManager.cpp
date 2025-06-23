@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:01 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/21 16:46:11 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/23 20:44:25 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -343,9 +343,14 @@ void	ServerManager::handleEpollOutEvent(int fd, std::map<int, Connection *>::ite
 		return;
 	}
 	it->second->successWrite();
-	if (it->second->getState() != WRITING)
+	if (it->second->getState() == DONE)
 	{
-		g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " finished writing, switching to READING state");
+		g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " finished writing " + to_string(bytes_written) + " bytes, closing connection");
+		closeConnection(fd, it);
+	}
+	else if (it->second->getState() == READING)
+	{
+		g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " switched to READING state after writing " + to_string(bytes_written) + " bytes");
 		updateEpoll(fd, EPOLLIN | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_MOD);
 	}
 	else
