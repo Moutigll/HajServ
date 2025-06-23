@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 23:50:18 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/20 19:14:39 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/23 23:53:22 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,14 +29,16 @@
 struct t_location
 {
 	std::string							_path;
+	std::string							_root; // to implement
 	std::map<std::string, std::string>	_loc_data;
 	int									_return_code;
 	std::string							_return_uri;
 	bool								_autoindex;
 	std::vector<std::string>			_methods;
 	std::vector<std::string>			_try_files;
+	std::vector<std::string>			_indexes; //to implement
 
-	t_location() :_autoindex(false) {}
+	t_location() :_root(""), _autoindex(false), _indexes("index.html", "index.htm") {}
 };
 
 struct t_server

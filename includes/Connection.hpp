@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:48:52 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/23 20:09:55 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/23 23:57:47 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,25 +55,13 @@ class Connection
 		e_ConnectionState	getState(void) const;
 
 		/**
-		 * @brief Append data to the read buffer.
-		 *
-		 * Allocates the buffer if empty,
-		 * otherwise reallocates and appends the new data.
-		 *
-		 * @param buffer Pointer to the data to append.
-		 * @param size Number of bytes to append.
-		 * @return true if the operation succeeded, false on allocation failure.
-		 */
-		bool	appendToReadBuffer(const char *buffer, size_t size);
-
-		/**
 		 * @brief Parse the HTTP request from the read buffer.
 		 * This function processes the request line, headers, and body
 		 * in sequence.
 		 * @param buffer The buffer containing the HTTP request data.
 		 * @return true if the request was successfully parsed, false if an error occurred or if more data is needed.
 		 */
-		bool	parseRequest(void);
+		bool	parseRequest(char *buffer);
 
 		char	*getReadBuffer(void);
 		void	successWrite(void);
@@ -84,7 +72,6 @@ class Connection
 		e_ConnectionState	_state;
 		t_server			*_server;
 		bool				_closed;
-		char				*_readBuffer;
 		char				*_writeBuffer;
 		std::time_t			_lastActivity;
 		HttpTransaction		*_httpTransaction;

@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:01 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/23 20:44:25 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/24 00:01:07 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -276,6 +276,7 @@ void	ServerManager::handleConnectionEvent(struct epoll_event event)
 void	ServerManager::handleEpollInEvent(int fd, std::map<int, Connection *>::iterator &it)
 {
 	char	buffer[4096];
+	bool	parse_result = false;
 	ssize_t	bytes_read;
 
 	while (1)
@@ -283,7 +284,7 @@ void	ServerManager::handleEpollInEvent(int fd, std::map<int, Connection *>::iter
 		bytes_read = recv(fd, buffer, sizeof(buffer), 0);
 
 		if (bytes_read > 0 && it->second->getState() != WRITING)
-			it->second->appendToReadBuffer(buffer, bytes_read);
+			parse_result = it->second->parseRequest(buffer);
 		else if (bytes_read == 0)
 		{
 			g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " closed by peer");
@@ -302,7 +303,7 @@ void	ServerManager::handleEpollInEvent(int fd, std::map<int, Connection *>::iter
 			}
 		}
 	}
-	if (it->second->parseRequest() && it->second->getState() == WRITING) // If the request is complete we enable EPOLLOUT
+	if (parse_result && it->second->getState() == WRITING) // If the request is complete we enable EPOLLOUT
 		updateEpoll(fd, EPOLLOUT | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_MOD);
 }
 
