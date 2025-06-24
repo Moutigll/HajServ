@@ -415,7 +415,7 @@ bool Config::parseErrors(std::ifstream &file, int &line_number, t_server &server
 
 const t_server &Config::getServerBlock(size_t index) const
 {
-	if (index < this->_servers.size() && index >= 0)
+	if (index < this->_servers.size())
 		return this->_servers[index];
 	return this->_servers[0];
 }
