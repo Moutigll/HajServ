@@ -1,0 +1,4 @@
+pycurl
+matplotlib
+numpy
+scipy

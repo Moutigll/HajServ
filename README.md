@@ -59,19 +59,51 @@ server {
 Multiple server blocks can be defined in the configuration file to listen on different ports or domains.
 
 ---
-## Performances
-### Benchmark in local without logs enabled and -O3
-see `ressources/scripts/graph.py`
+## Performance
 
-![Benchmark graph](ressources/imgs/siege.png)
-```bash
-Duration:             15 seconds
-Total requests:       495842
-Successful:           495842
+### Benchmark executed locally (no logs, compiled with `-O3`)
+
+The performance tests were run on a localhost with logging disabled, using the `-O3` optimization flag during compilation.  
+
+The Python script used to generate the graphs is located at:
+
+~~~
+ressources/scripts/graph.py
+~~~
+
+### Raw Results
+
+- **High latency scenario**: includes all measurements, including outliers (extreme delays, GC, etc.).
+- **Low latency scenario**: trimmed mean (1% of extreme values removed), giving a clearer view of real performance.
+
+<p align="center">
+  <img src="ressources/imgs/high.png" alt="High latency plot (with outliers)" width="45%" />
+  <img src="ressources/imgs/low.png" alt="Low latency plot (1% extremes removed)" width="45%" />
+</p>
+
+### High (raw) latency data
+
+~~~
+Total requests:       564021
+Successful:           563921
+Failed:               100
+Average time (ms):    2.72
+Median time (ms):     0.35
+Average requests/sec: 40560.07
+Longest:              2789.93ms
+Shortest:             0.09ms
+~~~
+
+### Low (filtered) latency data
+
+~~~
+Total requests:       571437
+Successful:           571437
 Failed:               0
-Average time (ms):    3.12
-Median time (ms):     0.42
-Average requests/sec: 33056.13
-Longest:              3256.64ms
-Shortest:             0.16ms
-```
+Average time (ms):    0.34
+Median time (ms):     0.34
+Average requests/sec: 38097.74
+Longest:              0.64ms
+Shortest:             0.26ms
+~~~
+
