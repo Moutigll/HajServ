@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 23:50:18 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/24 00:12:26 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/24 16:05:39 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,11 +20,12 @@
 # include <map>
 # include <sstream>
 # include <string>
-#include <sys/stat.h>
-#include <fcntl.h>
+# include <sys/stat.h>
+# include <fcntl.h>
 # include <sys/time.h>
 # include <vector>
 # include <csignal>
+# include <algorithm>
 
 struct t_location
 {

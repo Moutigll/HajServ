@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:24:31 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/23 23:21:59 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/24 16:03:12 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -92,6 +92,7 @@ private:
 	 * @return Content length as size_t.
 	 */
 	static size_t	getContentLength(const std::map<std::string, std::string> &hdrs);
+	void	PutServer();
 };
 
 #endif

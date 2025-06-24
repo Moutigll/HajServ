@@ -3,17 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   HttpTransaction.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:16:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/23 23:00:39 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/24 02:34:41 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Http/HttpTransaction.hpp"
 
 HttpTransaction::HttpTransaction()
-	: _connectionKeepAlive(false), _isComplete(false) {}
+	: _connectionKeepAlive(false), _status(200), _isComplete(false) {}
 
 HttpTransaction::HttpTransaction(const HttpTransaction &other)
 	: _method(other._method),

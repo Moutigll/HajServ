@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Connection.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:12 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/23 23:58:14 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/24 03:30:39 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,8 +53,23 @@ Connection &Connection::operator=(const Connection &other)
 }
 
 Connection::~Connection(void)
-{}
-
+{
+	if (_httpRequest != NULL)
+	{
+		delete _httpRequest;
+		_httpRequest = NULL;
+	}
+	if (_httpTransaction != NULL)
+	{
+		delete _httpTransaction;
+		_httpTransaction = NULL;
+	}
+	if (_writeBuffer != NULL)
+	{
+		delete[] _writeBuffer;
+		_writeBuffer = NULL;
+	}
+}
 bool	Connection::isClosed(void) const
 {
 	return (this->_closed);

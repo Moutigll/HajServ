@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/20 21:05:28 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/23 23:54:44 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/24 16:05:14 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,13 +45,27 @@ bool HttpRequest::isComplete() const
 	return _parse_state == PS_DONE;
 }
 
+void HttpRequest::PutServer()
+{
+	size_t hostIndex = 0;
+	for (size_t i = 0; _port->getServer(i); ++i)
+	{
+		if (_host.empty())
+			break; // No host header, skip and use the first server
+		t_server *server = _port->getServer(i);
+
+		if (std::find(server->_hosts.begin(), server->_hosts.end(), _host) != server->_hosts.end())
+			hostIndex = i;
+	}
+	_server = _port->getServer(hostIndex);
+}
+
 int HttpRequest::parse(const char *buffer)
 {
 	if (_parse_state == PS_ERROR || _parse_state == PS_DONE)
 		return _parse_state == PS_DONE ? 1 : -1;
 
 	_accum.append(buffer);
-	std::cout << "Accumulated data: " << _accum << std::endl; // Debugging output
 
 	if (_parse_state == PS_REQUEST_LINE) {
 		size_t pos = _accum.find("\r\n");
@@ -62,7 +76,7 @@ int HttpRequest::parse(const char *buffer)
 			_parse_state = PS_ERROR;
 			return -1;
 		}
-		_accum.clear(); // remove the request line including the last \r\n
+		_accum.erase(0, pos + 2); // remove the request line including the last \r\n\r\n
 		_parse_state = PS_HEADERS;
 	}
 
@@ -71,15 +85,19 @@ int HttpRequest::parse(const char *buffer)
 		if (pos == std::string::npos)
 			return 0;  // Waiting for the end of the headers
 		std::string hdrs = _accum.substr(0, pos + 2); // include the last \r\n
-		if (!parseHeaders(hdrs)) {
+		if (!parseHeaders(hdrs))
+		{
 			_parse_state = PS_ERROR;
 			return -1;
 		}
+		if (_port)
+			PutServer();
 		_accum.erase(0, pos + 4); // remove the headers including the last \r\n\r\n
 		_content_length = getContentLength(_headers);
 		_parse_state = (_content_length > 0 ? PS_BODY : PS_DONE);
 		if (_parse_state == PS_DONE) {
 			_isComplete = true;
+			std::cout << this->_status;
 			return 1;
 		}
 	}
@@ -134,7 +152,6 @@ bool	HttpRequest::parseRequestLine(const std::string &line)
 		_status = 400; // Bad Request : empty request URI
 		return false;
 	}
-	std::cout << "Request URI: " << _request << std::endl; // Debugging output
 	_protocol = protocol;
 	return true;
 }
@@ -159,8 +176,6 @@ bool	HttpRequest::parseHeaders(const std::string &headers)
 		std::string	key = line.substr(0, colon);
 		std::string	value = line.substr(colon + 1);
 
-		toLowercase(value);
-
 		// trim initial spaces/tabs in value
 		while (!value.empty() && (value[0] == ' ' || value[0] == '\t'))
 			value.erase(0, 1);
@@ -175,8 +190,8 @@ bool	HttpRequest::parseHeaders(const std::string &headers)
 
 		_headers[key] = value;
 
-		if (key == "Connection" && value == "keep-alive")
-			_connectionKeepAlive = true; // Any other value means the connection is not kept alive
+		if (key == "Connection")
+			_connectionKeepAlive = (value == "keep-alive"); // Any other value means the connection is not kept alive
 
 		if (_protocol == "HTTP/1.1" && key == "Host")
 			has_host = true;

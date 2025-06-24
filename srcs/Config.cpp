@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/24 00:17:44 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/24 03:40:31 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -155,6 +155,22 @@ bool Config::parseServer(std::ifstream &file, int &line_number)
 			continue;
 		if (line == "};")
 		{
+			if (server._hosts.empty())
+			{
+				std::cerr << RED << "Error: Server block is missing server_name directive." << RESET << std::endl;
+				return false;
+			}
+			if (server._ports.empty())
+			{
+				std::cerr << RED << "Error: Server block is missing listen directive." << RESET << std::endl;
+				return false;
+			}
+			if (server._methods.empty())
+			{
+				server._methods.push_back("GET");
+				server._methods.push_back("POST");
+				server._methods.push_back("DELETE");
+			}
 			_servers.push_back(server);
 			return true;
 		}

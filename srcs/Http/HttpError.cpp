@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpError.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/21 15:13:09 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/23 17:01:39 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/24 00:37:36 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,7 +106,7 @@ std::string	HttpError::getFilePath( void )
 	}
 	g_logger.log(LOG_ERROR, "Failed to find error page for code " + to_string(this->_code) +
 							" in server block with root error page: " + _server._root_error);
-	return NULL;
+	return "";
 }
 
 void HttpError::setServer(const t_server &server)

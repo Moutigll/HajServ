@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerManager.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:01 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/24 00:01:07 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/24 02:32:34 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -275,13 +275,14 @@ void	ServerManager::handleConnectionEvent(struct epoll_event event)
 
 void	ServerManager::handleEpollInEvent(int fd, std::map<int, Connection *>::iterator &it)
 {
-	char	buffer[4096];
 	bool	parse_result = false;
 	ssize_t	bytes_read;
 
 	while (1)
 	{
+		char	buffer[4096];
 		bytes_read = recv(fd, buffer, sizeof(buffer), 0);
+		buffer[bytes_read] = '\0';
 
 		if (bytes_read > 0 && it->second->getState() != WRITING)
 			parse_result = it->second->parseRequest(buffer);
