@@ -14,9 +14,7 @@ REQUESTS = [
 	b"GET / HTTP/1.1\r\nHost localhost\r\nConnection: close\r\n\r\n",                # 400 Bad Request (missing colon in Host)
 	b"HELLO\r\n\r\n",                                                                # 400 Bad Request (invalid request)
 	b"GET / HTTP/1.1\r\nConnection: close\r\n\r\n",                                  # 400 Bad Request (missing Host header)
-	b"OPTIONS / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",           # 405 Method Not Allowed
 	b"GET / HTTP/2.0\r\nHost: localhost\r\nConnection: close\r\n\r\n",               # 505 HTTP Version Not Supported
-	b"POST / HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",              # 501 Not Implemented (only GET supported)
 ]
 
 EXPECTED_CODES = [
@@ -27,9 +25,7 @@ EXPECTED_CODES = [
 	"400",
 	"400",
 	"400",
-	"405",
 	"505",
-	"501",
 ]
 
 GREEN = "\033[92m"

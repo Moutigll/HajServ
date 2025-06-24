@@ -2,3 +2,4 @@ webserv
 obj
 .vscode
 results
+server.log

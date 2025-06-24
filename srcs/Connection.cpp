@@ -3,179 +3,169 @@
 /*                                                        :::      ::::::::   */
 /*   Connection.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/05/15 22:46:51 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/20 13:24:11 by ele-lean         ###   ########.fr       */
+/*   Created: 2025/06/03 18:52:12 by ele-lean          #+#    #+#             */
+/*   Updated: 2025/06/24 03:30:39 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Connection.hpp"
 
-Connection::Connection(int fd, Server *server, const sockaddr_in &clientAddr)
-	: _fd(fd), _server(server), _isKeepAlive(false), _clientAddr(clientAddr)
+Connection::Connection(void)
+	: _fd(-1), _port(NULL), _state(READING), _server(NULL),
+	  _closed(true), _writeBuffer(NULL), _lastActivity(std::time(NULL)), _httpTransaction(NULL), _httpRequest(NULL) {}
+
+Connection::Connection(int fd, Port *port)
+	: _fd(fd), _port(port), _state(READING), _server(NULL),
+	  _closed(fd < 0), _writeBuffer(NULL), _lastActivity(std::time(NULL)), _httpTransaction(NULL), _httpRequest(NULL)
 {
-	_lastActivity = std::time(NULL);
-	_requestComplete = false;
-	_responseBuilt = false;
-	_bytesWritten = 0;
-	_rawRequest.clear();
-	_rawResponse.clear();
-}
-
-Connection::~Connection()
-{
-	if (_fd != -1)
+	if (port != NULL)
 	{
-		close(_fd);
-		_fd = -1;
-	}
-	_server->logConnection(_fd, _clientAddr, 0);
-}
-
-int	Connection::getFd() const {return (_fd);}
-
-bool	Connection::readRequest()
-{
-	char		buf[8192];
-	ssize_t		bytes_read;
-	time_t		now;
-
-	now = std::time(NULL);
-	if (now - _lastActivity > static_cast<time_t>(_server->getTimeout()))
-		return (false); // Timeout
-
-	bytes_read = recv(_fd, buf, sizeof(buf), 0);
-	if (bytes_read < 0)
-	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return (true);
-		return (false);
-	}
-	if (bytes_read == 0)
-		return (false);
-
-	_lastActivity = now;
-	_rawRequest.append(buf, bytes_read);
-
-	if (_rawRequest.find("\r\n\r\n") != std::string::npos)
-	{
-		_requestComplete = true;
-		parseRequest(_rawRequest);
-	}
-	return (true);
-}
-
-
-bool Connection::isRequestComplete() const
-{
-	return _requestComplete;
-}
-
-bool	Connection::parseRequest(const std::string &raw)
-{
-	HttpCode	reqStatus;
-	
-	reqStatus = _request.parseRequest(raw);
-	if (g_config.getGlobal("log_requests") == "true")
-		_request.logRequest();
-	if (reqStatus.getCode() != 200)
-	{
-		_response.setStatusCode(reqStatus.getCode());
-		_response.setHttpVersion(_request.getHttpVersion());
-		_response.setHeaders("Content-Type: text/plain; charset=utf-8");
-		_response.addHeader("Connection", "close");
-		_response.setBody(reqStatus.getMessage(reqStatus.getCode()) + "\n");
-		_isKeepAlive = false;
-		return (true);
-	}
-
-	std::string	connection_header = "";
-	if (_request.hasHeader("Connection"))
-		connection_header = _request.getHeader("Connection");
-
-	if (_request.getHttpVersion() == "HTTP/1.1")
-	{
-		if (connection_header == "close")
-			_isKeepAlive = false;
-		else
-			_isKeepAlive = true;
-	}
-	else if (_request.getHttpVersion() == "HTTP/1.0")
-	{
-		if (connection_header == "keep-alive")
-			_isKeepAlive = true;
-		else
-			_isKeepAlive = false;
+		this->_server = port->getServer(0);
+		if (this->_server == NULL)
+			this->_closed = true;
 	}
 	else
-		_isKeepAlive = false;
-	return (true);
+		this->_closed = true;
 }
 
-void	Connection::generateResponse()
+Connection::Connection(const Connection &other)
+	: _fd(other._fd), _port(other._port), _state(other._state),
+	  _server(other._server), _closed(other._closed), _writeBuffer(NULL),
+	  _lastActivity(other._lastActivity), _httpTransaction(other._httpTransaction), _httpRequest(other._httpRequest) {}
+
+
+Connection &Connection::operator=(const Connection &other)
 {
-	_response.setStatusCode(200);
-	_response.setHttpVersion(_request.getHttpVersion());
-	_response.addHeader("Connection", _isKeepAlive ? "keep-alive" : "close");
-	if (_request.getMethod() == "GET")
+	if (this != &other)
 	{
-		_server->get(_response, _request.getUri());
+		this->_fd = other._fd;
+		this->_closed = other._closed;
+		this->_port = other._port;
+		this->_lastActivity = other._lastActivity;
+		this->_server = other._server;
+		this->_state = other._state;
+		this->_httpTransaction = other._httpTransaction;
+		this->_httpRequest = other._httpRequest;
 	}
-	else
-	{
-		_response.setStatusCode(405);
-		_response.setBody("405 Method Not Allowed\n");
-	}
+	return *this;
 }
 
-bool Connection::writeResponse()
+Connection::~Connection(void)
 {
-	time_t	now = std::time(NULL);
-	_lastActivity = now;
-
-	if (!_responseBuilt)
+	if (_httpRequest != NULL)
 	{
-		if (_request.isValid())
-			generateResponse();
-		_rawResponse = _response.serialize();
-		_bytesWritten = 0;
-		_responseBuilt = true;
+		delete _httpRequest;
+		_httpRequest = NULL;
 	}
-
-	ssize_t n = send(_fd, _rawResponse.c_str() + _bytesWritten, _rawResponse.size() - _bytesWritten, 0);
-	if (n < 0)
+	if (_httpTransaction != NULL)
 	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return true;
-		return false;
+		delete _httpTransaction;
+		_httpTransaction = NULL;
 	}
-	_bytesWritten += n;
-	if (_bytesWritten < _rawResponse.size())
+	if (_writeBuffer != NULL)
+	{
+		delete[] _writeBuffer;
+		_writeBuffer = NULL;
+	}
+}
+bool	Connection::isClosed(void) const
+{
+	return (this->_closed);
+}
+
+bool	Connection::isTimeout(void) const
+{
+	if (this->_server == NULL)
 		return true;
+	std::time_t now = std::time(NULL);
+	return (difftime(now, this->_lastActivity) > this->_server->_timeout);
+}
 
-	if (!_isKeepAlive)
+void	Connection::updateLastActivity(void)
+{
+	this->_lastActivity = std::time(NULL);
+}
+
+e_ConnectionState	Connection::getState(void) const
+{
+	return (this->_state);
+}
+
+void	Connection::switchToErrorState(int errorCode)
+{
+	g_logger.log(LOG_DEBUG, "Switching to error state with code: " + to_string(errorCode) + " on fd: " + to_string(this->_fd));
+	this->_httpTransaction = NULL;
+	this->_httpTransaction = new HttpResponse(*this->_server);
+	if (this->_httpTransaction == NULL)
+		return;
+	HttpResponse* response = dynamic_cast<HttpResponse*>(this->_httpTransaction);
+	response->setStatus(errorCode);
+	this->_state = WRITING;
+}
+
+bool Connection::parseRequest(char *readBuffer)
+{
+	if (this->_httpRequest != NULL)
+	{
+		delete this->_httpRequest;
+		this->_httpRequest = NULL;
+	}
+	
+	if (this->_httpTransaction == NULL)
+		this->_httpTransaction = new HttpRequest();
+	if (this->_httpTransaction == NULL)
+		return (switchToErrorState(500), false); // Allocation failed, switch to error state 500 internal server error
+
+	HttpRequest* request = dynamic_cast<HttpRequest*>(this->_httpTransaction);
+	request->setPort(this->_port);
+	
+	int status = request->parse(readBuffer);
+	if (status == -1)
+	{
+		switchToErrorState(request->getStatus());
+		delete request;
+		return true;
+	}
+	else if (status == 0)
+	{
+		this->_state = READING; // Need more data
 		return false;
-	return true;
+	}
+	this->_httpRequest = request;
+	this->_httpTransaction = NULL;
+	_httpRequest->log();
+	this->_state = WRITING;
+	return true; // Request is complete, switch to writing state
 }
 
-
-bool	Connection::isClosed() const {return (_fd == -1);}
-
-void Connection::resetForNextRequest()
+char *Connection::getReadBuffer(void)
 {
-	_rawRequest.clear();
-	_request = Request();
-	_requestComplete = false;
-	_responseBuilt = false;
-	_rawResponse.clear();
-	_bytesWritten = 0;
-	_isKeepAlive = false;
+	if (this->_writeBuffer != NULL)
+		return this->_writeBuffer;
+	if (this->_httpTransaction == NULL)
+	{
+		if (this->_httpRequest != NULL)
+			this->_httpTransaction = new HttpResponse(*this->_server, *this->_httpRequest);
+		else
+			this->_httpTransaction = new HttpResponse(*this->_server);
+	}
+	if (this->_httpTransaction == NULL)
+		return NULL;
+	HttpResponse* response = dynamic_cast<HttpResponse*>(this->_httpTransaction);
+	_writeBuffer = response->sendResponse();
+	if (response->isComplete())
+	{
+		delete this->_httpTransaction;
+		this->_httpTransaction = NULL;
+		this->_state = DONE; // Request is complete, switch to done state
+	}
+	return this->_writeBuffer;
 }
 
-Server	*Connection::getServer() const
+void Connection::successWrite(void)
 {
-	if (_server)
-		return _server;
-	return NULL;
+	delete[] this->_writeBuffer;
+	this->_writeBuffer = NULL; // Clear write buffer after successful write
 }

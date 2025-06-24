@@ -3,55 +3,39 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/05/14 21:21:00 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/05/20 11:41:02 by ele-lean         ###   ########.fr       */
+/*   Created: 2025/05/21 14:36:50 by etaquet           #+#    #+#             */
+/*   Updated: 2025/06/20 19:38:48 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../includes/Config.hpp"
 #include "../includes/ServerManager.hpp"
+#include "../includes/Http/HttpError.hpp"
 
-Config	g_config;
-
-int	main(int argc, char **argv)
+int main(int argc, char **argv)
 {
-	const char	*path;
-
-	if (pipe(g_pipe_fds) == -1)
+	if (argc != 2)
 	{
-		std::cerr << "Failed to create pipe: " << strerror(errno) << std::endl;
+		std::cerr << RED << "Usage: " << argv[0] << " <config_file_path>" << RESET << std::endl;
 		return 1;
 	}
 
-	setupSignalHandler();
-
-	if (argc > 2)
+	Config config;
+	if (!config.parse(argv[1]))
 	{
-		std::cerr << YELLOW << "Usage: " << argv[0] << " <config_file>" << RESET << std::endl;
+		std::cerr << RED << "Failed to parse config file." << RESET << std::endl;
 		return 1;
 	}
+	config.logConfig();
 
-	if (argc == 2)
-		path = argv[1];
-	else
-		path = "default.conf";
-
-	if (!g_config.load(path))
+	ServerManager serverManager;
+	if (!serverManager.init(config.getServers()))
 	{
-		std::cerr << RED << "Failed to load config file: " << path << RESET << std::endl;
+		g_logger.log(LOG_ERROR, "Failed to initialize server manager.");
 		return 1;
 	}
-	std::cout << GREEN << "Config file loaded successfully!" << RESET << std::endl;
-	if (g_config.getGlobal("log_level") == "debug")
-		g_config.state();
-	ServerManager	manager;
-
-	for (size_t i = 0; i < g_config.getServerCount(); i++)
-		manager.addServer(g_config.getServerBlock(i));
-
-	manager.startServers();
+	serverManager.start();
 
 	return 0;
 }

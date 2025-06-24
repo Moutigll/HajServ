@@ -49,7 +49,7 @@ jobs:
         exit 1
         fi
       
-        python3 test_server.py > test_output.log 2>&1 || true
+        python3 ressources/scripts/test_server.py > test_output.log 2>&1 || true
       
         kill -SIGINT "$server_pid"
         wait "$server_pid" 2>/dev/null || true
