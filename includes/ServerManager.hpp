@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 16:45:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/20 22:54:51 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/24 18:24:18 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@
 # include "Connection.hpp"
 
 #define EPOLL_MAX_EVENTS 256 // Maximum number of events to handle in one epoll_wait call.
-#define EPOLL_TIMEOUT 1000 // Timeout in milliseconds for epoll_wait.
+#define EPOLL_TIMEOUT 100000 // Timeout in milliseconds for epoll_wait.
 
 /**
  * @class ServerManager

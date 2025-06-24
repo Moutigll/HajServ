@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpError.cpp                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/21 15:13:09 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/24 00:37:36 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/24 18:31:45 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,6 +76,7 @@ std::map<int, std::string> HttpError::_initHttpErrors()
 	codes[415] = "Unsupported Media Type";
 	codes[416] = "Range Not Satisfiable";
 	codes[417] = "Expectation Failed";
+	codes[418] = "I'm a teapot";
 	codes[426] = "Upgrade Required";
 	codes[500] = "Internal Server Error";
 	codes[501] = "Not Implemented";
@@ -104,8 +105,6 @@ std::string	HttpError::getFilePath( void )
 			error_page += '/';
 		return error_page + it->second;
 	}
-	g_logger.log(LOG_ERROR, "Failed to find error page for code " + to_string(this->_code) +
-							" in server block with root error page: " + _server._root_error);
 	return "";
 }
 

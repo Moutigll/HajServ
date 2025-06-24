@@ -1,0 +1,124 @@
+name: Make, Tests, Siege, Valgrind
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SCORE_THRESHOLD: 100
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y siege valgrind bc python3 python3-pip ccache
+        pip3 install --upgrade pip
+
+    - name: Build project
+      run: |
+        export CC="ccache gcc"
+        make
+
+    - name: Run server with Valgrind and check results
+      run: |
+        valgrind --leak-check=full --show-leak-kinds=all --track-fds=yes \
+          --log-file=valgrind.log \
+          ./webserv example.cfg > ./webserv.log 2>&1 &
+
+        server_pid=$!
+        for i in $(seq 1 40); do
+          if curl --silent --fail http://localhost:8080/ > /dev/null; then
+            echo "✅ webserv is up (ready after $i × 0.5s)"
+            break
+          fi
+          sleep 0.5
+        done
+
+        if ! curl --silent --fail http://localhost:8080/ > /dev/null; then
+          echo "❌ webserv never came up. Dumping logs:"
+          cat valgrind.log
+        exit 1
+        fi
+      
+        python3 ressources/scripts/test_server.py > test_output.log 2>&1 || true
+      
+        kill -SIGINT "$server_pid"
+        wait "$server_pid" 2>/dev/null || true
+      
+        if grep -q "definitely lost: [1-9][0-9]* bytes" valgrind.log; then
+            echo "❌ Memory leak detected:"
+            cat valgrind.log
+            exit 1
+        fi
+        score=$(cat results/test_results.txt)
+        if [ "$score" -lt 80 ]; then
+            echo "❌ Score too low: $score/100"
+            cat test_output.log
+            exit 1
+        fi
+      
+        echo "✅ Test passed with score: $score/100"
+      
+
+    - name: Run stress test with siege under Valgrind and check leaks + availability
+      env:
+        SERVER_PORT: 8080
+        AVAILABILITY_THRESHOLD: 99.5
+      run: |
+        valgrind --leak-check=full --show-leak-kinds=all --track-fds=yes \
+          --log-file=valgrind_siege.log \
+          ./webserv example.cfg >> ./webserv.log 2>&1 &
+      
+        server_pid=$!
+        for i in $(seq 1 40); do
+          if curl --silent --fail http://localhost:8080/ > /dev/null; then
+            echo "✅ webserv is up (ready after $i × 0.5s)"
+            break
+          fi
+          sleep 0.5
+        done
+
+        if ! curl --silent --fail http://localhost:8080/ > /dev/null; then
+          echo "❌ webserv never came up. Dumping logs:"
+          cat valgrind_siege.log
+        exit 1
+        fi
+      
+        siege -c 255 -t 15S http://0.0.0.0:$SERVER_PORT/ > siege_report.txt || true
+      
+        kill -SIGINT "$server_pid"
+        wait "$server_pid" 2>/dev/null || true
+      
+        availability=$(grep '"availability"' siege_report.txt | head -1 | awk -F':' '{print $2}' | tr -d ', ')
+        echo "Availability: $availability%"
+      
+        if grep -q "definitely lost: [1-9][0-9]* bytes" valgrind_siege.log; then
+          echo "❌ Memory leak detected after siege:"
+          cat valgrind_siege.log
+          exit 1
+        fi
+
+        is_ok=$(echo "$availability >= $AVAILABILITY_THRESHOLD" | bc)
+        if [ "$is_ok" -ne 1 ]; then
+          echo "❌ Availability below threshold ($AVAILABILITY_THRESHOLD%). Failing."
+          exit 1
+        fi
+      
+        cat siege_report.txt
+        echo "✅ Siege test passed with availability: $availability%"
+      
+    - name: Valgrind output
+      run: |
+        echo "Valgrind output:"
+        cat valgrind.log
+        echo "Valgrind siege output:"
+        cat valgrind_siege.log

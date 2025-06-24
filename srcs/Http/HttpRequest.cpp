@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/20 21:05:28 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/24 16:05:14 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/24 18:04:48 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,7 +97,6 @@ int HttpRequest::parse(const char *buffer)
 		_parse_state = (_content_length > 0 ? PS_BODY : PS_DONE);
 		if (_parse_state == PS_DONE) {
 			_isComplete = true;
-			std::cout << this->_status;
 			return 1;
 		}
 	}
@@ -130,7 +129,7 @@ bool	HttpRequest::parseRequestLine(const std::string &line)
 
 	if (method.empty() || request.empty() || protocol.empty())
 	{
-		_status = 400; // Bad Request : imcomplet request line
+		_status = 400; // Bad Request: incomplete request line
 		return false;
 	}
 
@@ -140,21 +139,49 @@ bool	HttpRequest::parseRequestLine(const std::string &line)
 		return false;
 	}
 
+	// Méthodes définies par la RFC
+	const char* rfc_methods[] = {
+		"GET", "POST", "PUT", "DELETE",
+		"HEAD", "OPTIONS", "CONNECT", "TRACE", "PATCH"
+	};
+	bool is_rfc_method = false;
+	for (int i = 0; i < 9; ++i)
+	{
+		if (method == rfc_methods[i])
+		{
+			is_rfc_method = true;
+			break;
+		}
+	}
+
+	if (!is_rfc_method)
+	{
+		if (method == "BREW")
+			_status = 418; // I'm a teapot (RFC 2324)
+		else
+			_status = 400; // Bad Request: unknown or invalid method
+		return false;
+	}
+
+	// Méthodes réellement implémentées par le serveur
 	if (method != "GET" && method != "POST" && method != "DELETE")
 	{
-		_status = 405; // Method Not Allowed
+		_status = 501; // Not Implemented
 		return false;
 	}
+
 	_method = method;
-	_request = percentDecode(request); // Decode percent-encoded characters in the request URI
+	_request = percentDecode(request);
 	if (_request.empty() || _request[0] != '/' || _request.find("..") != std::string::npos)
 	{
-		_status = 400; // Bad Request : empty request URI
+		_status = 400; // Bad Request: invalid request URI
 		return false;
 	}
+
 	_protocol = protocol;
 	return true;
 }
+
 
 
 bool	HttpRequest::parseHeaders(const std::string &headers)

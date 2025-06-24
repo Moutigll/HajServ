@@ -62,7 +62,7 @@ void	HttpResponse::construct() {
 	setFileHeaders();
 	
 	// ----- Header Server -----
-	_response += "Server: HajServ/2.0\r\n";
+	_response += "Server: " + VERSION + "\r\n";
 
 	// ----- Header Date -----
 	char		date_buffer[100];
@@ -224,6 +224,13 @@ static bool	get_file_info(const std::string &file_path, struct stat &file_stat, 
 	return true;
 }
 
+void	HttpResponse::buildErrorPage() {
+	_body = HTML_HEADER;
+	_body += "<h1> Error " + to_string(_status) + "</h1>\n";
+	_body += "<p>" + _ErrorStatus.getMessage(_status) + "</p>\n";
+	_body += HTML_FOOTER;
+}
+
 void	HttpResponse::setFileHeaders() {
 	if (_status >= 400) {
 		if (_ErrorStatus.getCode() == 200)
@@ -231,7 +238,9 @@ void	HttpResponse::setFileHeaders() {
 		_ErrorStatus.setServer(_server);
 		_filePath = _ErrorStatus.getFilePath();
 		if (_filePath.empty()) {
-			g_logger.log(LOG_ERROR, "No error page defined for status code " + to_string(_status));
+			buildErrorPage();
+			_headers["Content-Type"] = "text/html";
+			g_logger.log(LOG_WARNING, "No error page defined for status code " + to_string(_status));
 			return;
 		}
 	}

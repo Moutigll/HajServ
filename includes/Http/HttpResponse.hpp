@@ -21,6 +21,7 @@
 #include "HttpRequest.hpp"
 #include "../Config.hpp"
 
+const std::string VERSION = "HajServer/2.0.1";
 class HttpResponse : public HttpTransaction {
 	public:
 		HttpResponse(const t_server &server);
@@ -86,7 +87,28 @@ class HttpResponse : public HttpTransaction {
 		 */
 		void		setFileHeaders();
 
+		void		buildErrorPage();
+
 		char		*getBody();
 };
+
+#define HTML_HEADER "<!DOCTYPE html><html lang=\"en\"><head>" \
+	"<meta charset=\"UTF-8\">" \
+	"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" \
+	"<title>Error</title>" \
+	"<style>" \
+	"body{margin:0;padding:0;font-family:'Segoe UI',sans-serif;" \
+	"background:linear-gradient(to bottom,#a0d8ef,#ffffff);" \
+	"display:flex;justify-content:center;align-items:center;height:100vh;text-align:center;color:#00334e;}" \
+	".card{background:#fff;border-radius:20px;padding:2rem;box-shadow:0 8px 16px rgba(0,0,0,0.15);" \
+	"max-width:500px;width:90%;}" \
+	"h1{font-size:2rem;margin-bottom:0.5rem;}" \
+	"p{font-size:1rem;line-height:1.5;}" \
+	".footer{margin-top:1rem;font-size:0.8rem;color:#555;}" \
+	"</style></head><body><div class=\"card\">"
+
+#define HTML_FOOTER "<div class=\"footer\">" \
+	"<p>HajServer/2.0.1</p></div></div></body></html>"
+
 
 #endif
