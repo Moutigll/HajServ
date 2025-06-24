@@ -10,7 +10,7 @@
 /*																			*/
 /* ************************************************************************** */
 
-#include "../includes/Http/HttpResponse.hpp"
+#include "../../includes/Http/HttpResponse.hpp"
 
 HttpResponse::HttpResponse(const t_server &server)
 	: HttpTransaction(), _server(server), _isHeadersSent(false), _readFd(-1)
@@ -52,14 +52,15 @@ HttpResponse &HttpResponse::operator=(const HttpResponse &other) {
 HttpResponse::~HttpResponse() {}
 
 
-void	HttpResponse::construct() {
+void	HttpResponse::construct()
+{
 	_response.clear();
 	_response += _protocol + " " + to_string(_status) + " " + _ErrorStatus.getMessage(_status) + "\r\n";
 	
 	if (!_body.empty())
-	_response += "Content-Length: " + to_string(_body.size()) + "\r\n";
+		_response += "Content-Length: " + to_string(_body.size()) + "\r\n";
 	else
-	setFileHeaders();
+		setFileHeaders();
 	
 	// ----- Header Server -----
 	_response += "Server: " + VERSION + "\r\n";
@@ -80,7 +81,7 @@ void	HttpResponse::construct() {
 	// ----- Custom headers -----
 	std::map<std::string, std::string>::const_iterator it;
 	for (it = _headers.begin(); it != _headers.end(); ++it)
-	_response += it->first + ": " + it->second + "\r\n";
+		_response += it->first + ": " + it->second + "\r\n";
 	
 	_response += "\r\n";
 }
@@ -126,10 +127,12 @@ char* HttpResponse::getBody() {
 }
 
 char* HttpResponse::sendResponse() {
-	if (!_isHeadersSent) {
+	if (!_isHeadersSent)
+	{
 		if (_response.empty())
-		construct();
-		if (_response.empty()) {
+			construct();
+		if (_response.empty())
+		{
 			g_logger.log(LOG_ERROR, "Failed to construct response: empty response");
 			return NULL;
 		}

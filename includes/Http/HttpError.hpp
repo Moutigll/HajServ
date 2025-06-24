@@ -14,7 +14,7 @@
 #ifndef HTTPERROR_HPP
 # define HTTPERROR_HPP
 
-# include "Logger.hpp"
+# include "../Utils.hpp"
 
 class HttpError
 {

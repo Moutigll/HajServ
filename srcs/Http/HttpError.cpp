@@ -12,7 +12,6 @@
 
 #include "../../includes/Http/HttpError.hpp"
 
-
 std::map<int, std::string> HttpError::_HttpErrors = HttpError::_initHttpErrors();
 
 HttpError::HttpError() : _code(200) {}

@@ -13,8 +13,7 @@
 #ifndef HTTP_TRANSACTION_HPP
 #define HTTP_TRANSACTION_HPP
 
-#include "Logger.hpp"
-#include "HttpError.hpp"
+#include "../Utils.hpp"
 
 class HttpTransaction {
 	public:

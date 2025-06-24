@@ -19,7 +19,7 @@
 
 #include "HttpTransaction.hpp"
 #include "HttpRequest.hpp"
-#include "../Config.hpp"
+#include "HttpError.hpp"
 
 const std::string VERSION = "HajServer/2.0.1";
 class HttpResponse : public HttpTransaction {

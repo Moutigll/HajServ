@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "../includes/Config.hpp"
+#include "../includes/Logger.hpp"
 
 Config::Config()
 	: _finished(false), _log_connections(false), _log_request(false), _log_console(false), _log_file(""), _log_level("none"), _servers()

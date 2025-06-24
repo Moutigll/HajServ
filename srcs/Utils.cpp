@@ -23,7 +23,7 @@ std::string trim(const std::string &s)
 
 char    back(const std::string &s)
 {
-    if (s.empty())
+	if (s.empty())
 		return ('\0');
 	return (s[s.length() - 1]);
 }
@@ -60,45 +60,45 @@ std::vector<std::string>	split(const std::string &str, char delim)
 
 std::string percentDecode(const std::string& encoded)
 {
-    std::ostringstream decoded;
-    size_t i = 0;
+	std::ostringstream decoded;
+	size_t i = 0;
 
-    while (i < encoded.length())
+	while (i < encoded.length())
 	{
-        if (encoded[i] == '%')
+		if (encoded[i] == '%')
 		{
-            if (i + 2 >= encoded.length())
-                throw std::runtime_error("Invalid percent-encoding (truncated)");
+			if (i + 2 >= encoded.length())
+				throw std::runtime_error("Invalid percent-encoding (truncated)");
 
-            std::string hexStr = encoded.substr(i + 1, 2);
-            int byteInt = 0;
+			std::string hexStr = encoded.substr(i + 1, 2);
+			int byteInt = 0;
 
-            std::istringstream hexStream(hexStr);
-            hexStream >> std::hex >> byteInt;
+			std::istringstream hexStream(hexStr);
+			hexStream >> std::hex >> byteInt;
 
-            if (hexStream.fail())
-                throw std::runtime_error("Invalid hex in percent-encoding: " + hexStr);
+			if (hexStream.fail())
+				throw std::runtime_error("Invalid hex in percent-encoding: " + hexStr);
 
-            decoded << static_cast<char>(byteInt);
-            i += 3;
-        }
+			decoded << static_cast<char>(byteInt);
+			i += 3;
+		}
 		else if (encoded[i] == '+')
 		{
-            decoded << ' '; // '+' means space in query strings
-            i++;
-        }
+			decoded << ' '; // '+' means space in query strings
+			i++;
+		}
 		else
 		{
-            decoded << encoded[i];
-            i++;
-        }
-    }
+			decoded << encoded[i];
+			i++;
+		}
+	}
 
-    return decoded.str();
+	return decoded.str();
 }
 
 void toLowercase(std::string& s)
 {
-    for (size_t i = 0; i < s.length(); ++i)
-        s[i] = std::tolower(static_cast<unsigned char>(s[i]));
+	for (size_t i = 0; i < s.length(); ++i)
+		s[i] = std::tolower(static_cast<unsigned char>(s[i]));
 }

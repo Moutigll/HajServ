@@ -25,7 +25,6 @@
 # include <sys/time.h>
 # include <vector>
 # include <csignal>
-# include <algorithm>
 
 struct t_location
 {

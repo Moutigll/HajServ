@@ -15,7 +15,6 @@
 
 # include "Port.hpp"
 # include "Http/HttpRequest.hpp"
-# include "Http/HttpResponse.hpp"
 
 enum e_ConnectionState
 {

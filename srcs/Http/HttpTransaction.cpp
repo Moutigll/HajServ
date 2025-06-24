@@ -10,7 +10,8 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../includes/Http/HttpTransaction.hpp"
+#include "../../includes/Http/HttpTransaction.hpp"
+#include "../../includes/Logger.hpp"
 
 HttpTransaction::HttpTransaction()
 	: _connectionKeepAlive(false), _status(200), _isComplete(false) {}

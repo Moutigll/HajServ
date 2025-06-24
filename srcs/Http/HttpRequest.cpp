@@ -10,7 +10,8 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../includes/Http/HttpRequest.hpp"
+#include "../../includes/Http/HttpRequest.hpp"
+# include <algorithm>
 
 HttpRequest::HttpRequest()
 	: HttpTransaction(),

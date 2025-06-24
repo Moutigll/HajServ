@@ -11,7 +11,6 @@
 /* ************************************************************************** */
 
 #include "../includes/ServerManager.hpp"
-#include "../includes/Http/HttpError.hpp"
 
 int main(int argc, char **argv)
 {

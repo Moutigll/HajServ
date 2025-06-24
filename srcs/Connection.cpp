@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "../includes/Connection.hpp"
+#include "../includes/Http/HttpResponse.hpp"
 
 Connection::Connection(void)
 	: _fd(-1), _port(NULL), _state(READING), _server(NULL),
