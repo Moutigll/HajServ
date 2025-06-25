@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 02:22:13 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/25 16:36:57 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/25 19:49:44 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,38 +47,58 @@ bool	checkMethod(const std::string &method, const std::vector<std::string> &allo
 	return (false);
 }
 
-std::string	stripLocationPrefix(std::string const &request, std::string const &location_path)
+std::string	generateAutoindexPage(const std::string &uri, const std::string &directory_path)
 {
-	size_t loc_len = location_path.size();
-	if (location_path[loc_len - 1] == '/')
-		loc_len -= 1;
+	DIR				*dir;
+	struct dirent	*entry;
+	std::string		html;
+	struct stat		st;
+	std::string		full_path;
+	std::string		link;
+	std::string		name;
 
-	if (request.compare(0, loc_len, location_path, 0, loc_len) == 0)
-		return request.substr(loc_len);
+	dir = opendir(directory_path.c_str());
+	if (!dir)
+		return "<html><body><h1>500 Internal Server Error</h1></body></html>";
 
-	return request; // fallback
-}
+	html = "<html><head><title>Index of " + uri + "</title></head><body>";
+	html += "<h1>Index of " + uri + "</h1><ul>";
 
+	while ((entry = readdir(dir)))
+	{
+		name = std::string(entry->d_name);
 
-std::string	joinPaths(std::string const &root, std::string const &path)
-{
-	std::string	result;
-	size_t		root_len;
-	size_t		path_start;
+		// Ignore hidden files and "." entry
+		if (name == ".")
+			continue;
 
-	root_len = root.size();
-	path_start = 0;
+		full_path = directory_path;
+		if (full_path.empty() || full_path[full_path.size() - 1] != '/')
+			full_path += "/";
+		full_path += name;
 
-	if (root_len > 0 && root[root_len - 1] == '/')
-		result = root.substr(0, root_len - 1);
-	else
-		result = root;
+		if (stat(full_path.c_str(), &st) == 0 && S_ISDIR(st.st_mode))
+		{
+			link = uri;
+			if (link.empty() || link[link.size() - 1] != '/')
+				link += "/";
+			link += name;
+			link += "/"; // add trailing slash for directories
 
-	while (path_start < path.size() && path[path_start] == '/')
-		path_start++;
+			html += "<li><a href=\"" + link + "\">" + name + "/</a></li>";
+		}
+		else
+		{
+			link = uri;
+			if (link.empty() || link[link.size() - 1] != '/')
+				link += "/";
+			link += name;
 
-	result += "/";
-	result += path.substr(path_start);
+			html += "<li><a href=\"" + link + "\">" + name + "</a></li>";
+		}
+	}
+	closedir(dir);
 
-	return result;
+	html += "</ul></body></html>";
+	return html;
 }

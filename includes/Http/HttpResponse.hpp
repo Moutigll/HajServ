@@ -1,28 +1,25 @@
 /* ************************************************************************** */
-/*																			*/
-/*														:::	  ::::::::   */
-/*   HttpResponse.hpp								   :+:	  :+:	:+:   */
-/*													+:+ +:+		 +:+	 */
-/*   By: ele-lean <ele-lean@student.42.fr>		  +#+  +:+	   +#+		*/
-/*												+#+#+#+#+#+   +#+		   */
-/*   Created: 2025/06/18 18:26:55 by ele-lean		  #+#	#+#			 */
-/*   Updated: 2025/06/23 21:33:58 by ele-lean		 ###   ########.fr	   */
-/*																			*/
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   HttpResponse.hpp                                   :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/06/18 18:26:55 by ele-lean          #+#    #+#             */
+/*   Updated: 2025/06/25 20:28:39 by ele-lean         ###   ########.fr       */
+/*                                                                            */
 /* ************************************************************************** */
 
 #ifndef HTTP_RESPONSE_HPP
 #define HTTP_RESPONSE_HPP
 
-#include <cstring>
-#include <sys/socket.h>
-#include <unistd.h>
-
-#include "HttpTransaction.hpp"
 #include "HttpRequest.hpp"
 #include "HttpError.hpp"
 #include "GetFiles.hpp"
 
-const std::string VERSION = "HajServer/2.0.1";
+
+const std::string VERSION = "HajServer/2.1.0";
+
 class HttpResponse : public HttpTransaction {
 	public:
 		HttpResponse(const t_server &server);
@@ -30,14 +27,6 @@ class HttpResponse : public HttpTransaction {
 		HttpResponse(const HttpResponse &other);
 		HttpResponse &operator=(const HttpResponse &other);
 		virtual ~HttpResponse();
-
-		virtual bool isComplete() const;
-
-		void	setStatus(const HttpError &status);
-		void	setStatus(int code);
-		void	addHeader(const std::string &name, const std::string &value);
-		void	setBody(const std::string &body);
-		void	setFilePath(const std::string &filePath);
 
 		/**
 		 * @brief Constructs the HTTP response headers and prepares the body.
@@ -48,7 +37,7 @@ class HttpResponse : public HttpTransaction {
 		 * error headers and prepares the error response.
 		 */
 		void	construct();
-
+		
 		/**
 		 * @brief Sends the HTTP response including headers and body data.
 		 * 
@@ -72,30 +61,66 @@ class HttpResponse : public HttpTransaction {
 		 * @warning Memory allocated with new[] must be freed by the caller using delete[].
 		 */
 		t_buffer	sendResponse();
-
+		
+		void	addHeader(const std::string &name, const std::string &value);
+		void	setFilePath(const std::string &filePath);
+		void	setStatus(const HttpError &status);
+		void	setStatus(int code);
+		void	setBody(const std::string &body);
+		
 		HttpError	getStatus() const;
+		virtual bool	isComplete() const;
 	private:
-		t_server	_server;
-		std::string	_response;
+		t_server	_server; // Must be set, it is used to get the server configuration, paths and error pages
+		std::string	_response; // Contains the request line and headers
+		std::string	_filePath; // The file path to be served, if applicable
+		int			_readFd; // File descriptor for reading file content, if applicable
+		bool		_isHeadersSent; // Track if headers have been sent
 		HttpError	_ErrorStatus;
-		std::string	_filePath;
-		bool		_isHeadersSent;
-		int			_readFd;
+
 
 		/**
-		 * @brief Set the headers for a file response.
-		 * If the file exists, it sets the Content-Length and Content-Type headers.
-		 * If the file does not exist, it sets a 404 Not Found status and prepares an error response.
+		 * @brief Set HTTP headers for the file to serve.
+		 * 
+		 * If no file is set, tries to find one.  
+		 * If there's an error status, sets the error page file.  
+		 * Gets file info and sets "Content-Length" and "Content-Type" headers.  
+		 * Handles errors by setting appropriate status and error pages.
 		 */
 		void		setFileHeaders();
 
+		/**
+		 * @brief Builds an error page when the requested resource is not found or an error occurs.
+		 * 
+		 */
 		void		buildErrorPage();
 
+		/**
+		 * @brief Find and set the file path corresponding to the current URI.
+		 * 
+		 * - Finds the best matching location for the URI.
+		 * 
+		 * - Checks if the HTTP method is allowed.
+		 * 
+		 * - Builds the full file system path from the location root and URI.
+		 * 
+		 * - If the URI ends with '/', tries to find an index file or generates an autoindex page.
+		 * 
+		 * - Sets the appropriate HTTP status code (200, 403, 404, 405).
+		 * 
+		 * - Sets _filePath if a valid file is found.
+		 */
 		void		getFile();
 
+		/**
+		 * @brief Returns a buffer with the next chunk of the response body or file content.
+		 * 
+		 * @return t_buffer 
+		 */
 		t_buffer	getBody();
 };
 
+// HTML templates for error responses
 #define HTML_HEADER "<!DOCTYPE html><html lang=\"en\"><head>" \
 	"<meta charset=\"UTF-8\">" \
 	"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" \
@@ -113,6 +138,5 @@ class HttpResponse : public HttpTransaction {
 
 #define HTML_FOOTER "<div class=\"footer\">" \
 	"<p>HajServer/2.0.1</p></div></div></body></html>"
-
 
 #endif

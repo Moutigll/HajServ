@@ -1,41 +1,55 @@
 /* ************************************************************************** */
-/*																			*/
-/*														:::	  ::::::::   */
-/*   HttpResponse.cpp								   :+:	  :+:	:+:   */
-/*													+:+ +:+		 +:+	 */
-/*   By: ele-lean <ele-lean@student.42.fr>		  +#+  +:+	   +#+		*/
-/*												+#+#+#+#+#+   +#+		   */
-/*   Created: 2025/06/18 18:40:42 by ele-lean		  #+#	#+#			 */
-/*   Updated: 2025/06/23 21:20:51 by ele-lean		 ###   ########.fr	   */
-/*																			*/
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   HttpResponse.cpp                                   :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
+/*   Updated: 2025/06/25 21:03:16 by ele-lean         ###   ########.fr       */
+/*                                                                            */
 /* ************************************************************************** */
 
 #include "../../includes/Http/HttpResponse.hpp"
 
 HttpResponse::HttpResponse(const t_server &server)
-	: HttpTransaction(), _server(server), _isHeadersSent(false), _readFd(-1)
+	: HttpTransaction(),
+	  _server(server),
+	  _response(),
+	  _filePath(),
+	  _readFd(-1),
+	  _isHeadersSent(false),
+	  _ErrorStatus()
 {
-	_status = 200; // Default status code
+	_status = 200;
 	_protocol = "HTTP/1.1";
 	_isComplete = false;
 }
 
 HttpResponse::HttpResponse(const t_server &server, HttpRequest &request)
-	: HttpTransaction(request), _server(server), _isHeadersSent(false), _readFd(-1) {
+	: HttpTransaction(request),
+	  _server(server),
+	  _response(),
+	  _filePath(),
+	  _readFd(-1),
+	  _isHeadersSent(false),
+	  _ErrorStatus()
+{
 	_method = request.getMethod();
-	_request = request.getRequest();
+	_uri = request.getRequest();
 	_protocol = request.getProtocol();
-	_headers.clear();
+	_headers.clear(); // Clear headers from the request, we will build our own response headers
 }
 
 HttpResponse::HttpResponse(const HttpResponse &other)
 	: HttpTransaction(other),
 	  _server(other._server),
 	  _response(other._response),
-	  _ErrorStatus(other._ErrorStatus),
 	  _filePath(other._filePath),
+	  _readFd(other._readFd),
 	  _isHeadersSent(other._isHeadersSent),
-	  _readFd(other._readFd) {}
+	  _ErrorStatus(other._ErrorStatus)
+{}
 
 HttpResponse &HttpResponse::operator=(const HttpResponse &other) {
 	if (this != &other) {
@@ -52,64 +66,14 @@ HttpResponse &HttpResponse::operator=(const HttpResponse &other) {
 HttpResponse::~HttpResponse() {}
 
 
-void HttpResponse::getFile()
-{
-	std::string	relative_path;
-	t_location	*location;
 
-	location = findBestLocation(&_server, _request);
-	if (!location)
-	{
-		setStatus(404);
-		return;
-	}
-	if (!checkMethod(_method, location->_methods))
-	{
-		setStatus(405);
-		return;
-	}
-
-	relative_path = stripLocationPrefix(_request, location->_path);
-	if (!relative_path.empty() && relative_path[0] == '/')
-		relative_path = relative_path.substr(1);
-
-	if (_request.size() > 0 && _request[_request.size() - 1] == '/')
-	{
-		if (!location->_indexes.empty())
-			_filePath = joinPaths(location->_root, joinPaths(relative_path, location->_indexes[0]));
-		else if (location->_autoindex)
-		{
-			_body = "<html><body><h1>Directory listing not implemented</h1></body></html>";
-			setStatus(200);
-			return;
-		}
-		else
-		{
-			setStatus(403);
-			return;
-		}
-	}
-	else
-		_filePath = joinPaths(location->_root, relative_path);
-
-
-	g_logger.log(LOG_DEBUG, "Serving file: " + _filePath);
-	if (_method == "GET")
-	{
-		if (access(_filePath.c_str(), F_OK) != 0)
-		{
-			setStatus(404);
-			return;
-		}
-	}
-
-	setStatus(200);
-}
+/*-------------------------
+ Constructing the Response
+---------------------------*/
 
 void	HttpResponse::construct()
 {
 	_response.clear();
-	_response += _protocol + " " + to_string(_status) + " " + _ErrorStatus.getMessage(_status) + "\r\n";
 	
 	if (!_body.empty())
 		_response += "Content-Length: " + to_string(_body.size()) + "\r\n";
@@ -143,62 +107,206 @@ void	HttpResponse::construct()
 		_response += it->first + ": " + it->second + "\r\n";
 	
 	_response += "\r\n";
+	// ----- Status Line -----
+	_response.insert(0, _protocol + " " + to_string(_status) + " " + _ErrorStatus.getMessage(_status) + "\r\n");
 }
 
 
-HttpError HttpResponse::getStatus() const {
-	return _status;
+/*-------------------
+		Headers
+---------------------*/
+
+static std::string	getMimeType(const std::string &filePath) {
+	size_t		dot = filePath.find_last_of('.');
+	if (dot == std::string::npos) // No extension found
+		return "application/octet-stream";
+
+	std::string ext = filePath.substr(dot + 1);
+
+	if (ext == "html" || ext == "htm")
+		return "text/html";
+	if (ext == "css")
+		return "text/css";
+	if (ext == "js")
+		return "application/javascript";
+	if (ext == "png")
+		return "image/png";
+	if (ext == "jpg" || ext == "jpeg")
+		return "image/jpeg";
+	if (ext == "gif")
+		return "image/gif";
+	if (ext == "svg")
+		return "image/svg+xml";
+	if (ext == "mp4")
+		return "video/mp4";
+
+	return "application/octet-stream";
 }
 
-t_buffer	HttpResponse::getBody()
+/**
+ * @brief Get file information and determine the appropriate HTTP status code.
+ *
+ * @param filePath The path to the file.
+ * @param fileStat A struct stat to fill with file metadata.
+ * @return int HTTP status code: 200 if OK, 403 if forbidden, 404 if not found, 500 if internal error.
+ */
+static int	getFileInfos(const std::string &filePath, struct stat &fileStat, int &fd) {
+
+	if (stat(filePath.c_str(), &fileStat) != 0) {
+		if (errno == ENOENT)
+			return 404;
+		return 500;
+	}
+
+	if (access(filePath.c_str(), R_OK) != 0) {
+		if (errno == EACCES)
+			return 403;
+		return 500;
+	}
+
+	fd = open(filePath.c_str(), O_RDONLY);
+	if (fd < 0) {
+		if (errno == EACCES)
+			return 403;
+		if (errno == ENOENT)
+			return 404;
+		return 500;
+	}
+
+	return 200;
+}
+
+void	HttpResponse::setFileHeaders() {
+	if (_filePath.empty())
+		getFile();
+
+	if (_status >= 400) {
+		if (_ErrorStatus.getCode() == 200)
+			_ErrorStatus.setCode(_status);
+		_ErrorStatus.setServer(_server);
+		_filePath = _ErrorStatus.getFilePath();
+		if (_filePath.empty()) {
+			buildErrorPage();
+			return;
+		}
+	}
+
+	if (_filePath.empty())
+		return;
+	std::cout << "Serving file: " << _filePath << std::endl;
+	struct stat	fileStat;
+	int			fd = -1;
+
+	int fileStatus = getFileInfos(_filePath, fileStat, fd);
+	if (fileStatus != 200) {
+		setStatus(fileStatus);
+		_ErrorStatus.setServer(_server);
+		_filePath = _ErrorStatus.getFilePath();
+		if (fileStatus == 500)
+			g_logger.log(LOG_ERROR, "Internal server error while accessing file: " + _filePath);
+		if (_filePath.empty()) {
+			buildErrorPage();
+			return;
+		}
+		return;
+	}
+
+	_readFd = fd;
+	_headers["Content-Length"] = to_string(fileStat.st_size);
+	_headers["Content-Type"] = getMimeType(_filePath);
+}
+
+void	HttpResponse::buildErrorPage() {
+	_body = HTML_HEADER;
+	_body += "<h1> Error " + to_string(_status) + "</h1>\n";
+	_body += "<p>" + _ErrorStatus.getMessage(_status) + "</p>\n";
+	_body += HTML_FOOTER;
+	_headers["Content-Type"] = "text/html";
+	g_logger.log(LOG_WARNING, "No error page defined for status code " + to_string(_status));
+}
+
+
+/*-------------------
+		Get File
+---------------------*/
+
+void HttpResponse::getFile()
 {
-	t_buffer	buf = { NULL, 0 };
-
-	if (_readFd >= 0)
+	// 1) Find the best matching location for the URI
+	t_location *loc = findBestLocation(&_server, _uri);
+	if (!loc)
 	{
-		char *data = new char[_server._max_body_size];
-		ssize_t n = read(_readFd, data, _server._max_body_size);
-		if (n < 0)
-		{
-			g_logger.log(LOG_ERROR, "Failed to read file: " + std::string(strerror(errno)));
-			delete[] data;
-			return buf;
-		}
-		if (n == 0)
-		{
-			close(_readFd);
-			_readFd = -1;
-			_isComplete = true;
-			delete[] data;
-			return buf;
-		}
-		if ((size_t)n < _server._max_body_size)
-		{
-			close(_readFd);
-			_readFd = -1;
-			_isComplete = true;
-		}
-		buf.data = data;
-		buf.size = n;
+		setStatus(404);
+		return;
 	}
-	else if (!_body.empty())
+	if (!checkMethod(_method, loc->_methods))
 	{
-		size_t len = std::min(_body.size(), static_cast<size_t>(_server._max_body_size));
-		char *data = new char[len];
-		std::memcpy(data, _body.c_str(), len);
-		_body.erase(0, len);
-		if (_body.empty())
-			_isComplete = true;
-		buf.data = data;
-		buf.size = len;
-	}
-	else
-	{
-		_isComplete = true;
+		setStatus(405);
+		return;
 	}
 
-	return buf;
+	// 2) Build the URI relative to the location path
+	std::string prefix = loc->_path;
+	if (prefix.empty() || prefix[0] != '/') // assure prefix starts with a slash
+		prefix = "/" + prefix;
+	if (prefix[prefix.size()-1] != '/') // assure prefix ends with a slash
+		prefix += "/";
+
+	std::string uri = _uri;
+	std::string rel = uri.substr(prefix.size()); // strip the location path from the URI
+
+	// 3) Build the full file path
+	std::string full = loc->_root;
+	if (full.empty() || full[full.size()-1] != '/')
+		full += "/";
+	full += rel;
+
+
+	struct stat st;
+	bool exists = (stat(full.c_str(), &st) == 0);
+
+	// 5) if the URI ends with a slash, we assume it's a directory
+	if (!uri.empty() && uri[uri.size()-1] == '/')
+	{
+		// 5.a) if the directory exists, check for index files
+		for (size_t i = 0; i < loc->_indexes.size(); ++i)
+		{
+			std::string idx = full;
+			if (full[full.size()-1] != '/')
+				idx += "/";
+			idx += loc->_indexes[i];
+			if (stat(idx.c_str(), &st) == 0 && S_ISREG(st.st_mode))
+			{
+				_filePath = idx;
+				setStatus(200);
+				return;
+			}
+		}
+		// 5.b) autoindex ?
+		if (loc->_autoindex && exists && S_ISDIR(st.st_mode))
+		{
+			_body = generateAutoindexPage(uri, full);
+			setStatus(200);
+			return;
+		}
+		setStatus(exists ? 403 : 404);
+		return;
+	}
+
+	// 6) if the URI does not end with a slash, we assume it's a file
+	if (!exists || !S_ISREG(st.st_mode))
+	{
+		setStatus(404);
+		return;
+	}
+	_filePath = full;
+	setStatus(200);
 }
+
+
+/*-------------------------
+	Buffer Sending
+---------------------------*/
 
 t_buffer	HttpResponse::sendResponse()
 {
@@ -268,110 +376,85 @@ t_buffer	HttpResponse::sendResponse()
 	return getBody();
 }
 
+t_buffer	HttpResponse::getBody()
+{
+	t_buffer	buf = { NULL, 0 };
 
-/*-------------------
-		Headers
----------------------*/
-static std::string	get_mime_type(const std::string &file_path) {
-	size_t		dot = file_path.find_last_of('.');
-	if (dot == std::string::npos)
-		return "application/octet-stream";
-
-	std::string ext = file_path.substr(dot + 1);
-
-	if (ext == "html" || ext == "htm")
-		return "text/html";
-	if (ext == "css")
-		return "text/css";
-	if (ext == "js")
-		return "application/javascript";
-	if (ext == "png")
-		return "image/png";
-	if (ext == "jpg" || ext == "jpeg")
-		return "image/jpeg";
-	if (ext == "gif")
-		return "image/gif";
-	if (ext == "svg")
-		return "image/svg+xml";
-	if (ext == "mp4")
-		return "video/mp4";
-
-	return "application/octet-stream";
-}
-
-static bool	get_file_info(const std::string &file_path, struct stat &file_stat, int &fd) {
-	if (stat(file_path.c_str(), &file_stat) != 0)
-		return false;
-
-	fd = open(file_path.c_str(), O_RDONLY);
-	if (fd < 0)
-		return false;
-
-	return true;
-}
-
-void	HttpResponse::buildErrorPage() {
-	_body = HTML_HEADER;
-	_body += "<h1> Error " + to_string(_status) + "</h1>\n";
-	_body += "<p>" + _ErrorStatus.getMessage(_status) + "</p>\n";
-	_body += HTML_FOOTER;
-}
-
-void	HttpResponse::setFileHeaders() {
-	if (_filePath.empty())
-		getFile();
-
-	if (_status >= 400) {
-		if (_ErrorStatus.getCode() == 200)
-			_ErrorStatus.setCode(_status);
-		_ErrorStatus.setServer(_server);
-		_filePath = _ErrorStatus.getFilePath();
-		if (_filePath.empty()) {
-			buildErrorPage();
-			_headers["Content-Type"] = "text/html";
-			g_logger.log(LOG_WARNING, "No error page defined for status code " + to_string(_status));
-			return;
+	if (_readFd >= 0)
+	{
+		char *data = new char[_server._max_body_size];
+		ssize_t n = read(_readFd, data, _server._max_body_size);
+		if (n < 0)
+		{
+			g_logger.log(LOG_ERROR, "Failed to read file: " + std::string(strerror(errno)));
+			delete[] data;
+			return buf;
 		}
+		if (n == 0)
+		{
+			close(_readFd);
+			_readFd = -1;
+			_isComplete = true;
+			delete[] data;
+			return buf;
+		}
+		if ((size_t)n < _server._max_body_size)
+		{
+			close(_readFd);
+			_readFd = -1;
+			_isComplete = true;
+		}
+		buf.data = data;
+		buf.size = n;
 	}
-
-	if (_filePath.empty())
-		return;
-
-	struct stat	file_stat;
-	int			fd = -1;
-
-	if (!get_file_info(_filePath, file_stat, fd)) {
-		if (fd >= 0)
-			close(fd);
-		setStatus(404);
-		buildErrorPage();
-		_headers["Content-Type"] = "text/html";
-		return;
+	else if (!_body.empty())
+	{
+		size_t len = std::min(_body.size(), static_cast<size_t>(_server._max_body_size));
+		char *data = new char[len];
+		std::memcpy(data, _body.c_str(), len);
+		_body.erase(0, len);
+		if (_body.empty())
+			_isComplete = true;
+		buf.data = data;
+		buf.size = len;
 	}
+	else
+		_isComplete = true;
 
-	_headers["Content-Length"] = to_string(file_stat.st_size);
-	_readFd = fd;
+	return buf;
+}
 
-	_headers["Content-Type"] = get_mime_type(_filePath);
+
+/*-------------------------
+	Getters and Setters
+---------------------------*/
+
+HttpError HttpResponse::getStatus() const {
+	return _status;
 }
 
 bool HttpResponse::isComplete() const {
 	return _isComplete;
 }
+
 void HttpResponse::setStatus(const HttpError &status) {
 	_status = status.getCode();
 	_ErrorStatus = status;
 }
+
 void HttpResponse::setStatus(int code) {
 	_ErrorStatus.setCode(code);
 	_status = code;
 }
+
 void HttpResponse::addHeader(const std::string &name, const std::string &value) {
 	_headers[name] = value;
 }
+
 void HttpResponse::setBody(const std::string &body) {
 	_body = body;
 }
+
 void HttpResponse::setFilePath(const std::string &filePath) {
 	_filePath = filePath;
 }

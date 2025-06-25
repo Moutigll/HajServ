@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 23:50:18 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/25 04:32:34 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/25 17:02:05 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -114,7 +114,6 @@ std::string	to_string(const T &value)
 	return (oss.str());
 }
 
-std::string percentDecode(const std::string& encoded);
 void toLowercase(std::string& s);
 
 #endif

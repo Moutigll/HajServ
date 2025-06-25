@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/30 14:29:56 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/23 23:17:38 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/25 17:01:58 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -56,45 +56,6 @@ std::vector<std::string>	split(const std::string &str, char delim)
 			result.push_back(token);
 	}
 	return result;
-}
-
-std::string percentDecode(const std::string& encoded)
-{
-	std::ostringstream decoded;
-	size_t i = 0;
-
-	while (i < encoded.length())
-	{
-		if (encoded[i] == '%')
-		{
-			if (i + 2 >= encoded.length())
-				throw std::runtime_error("Invalid percent-encoding (truncated)");
-
-			std::string hexStr = encoded.substr(i + 1, 2);
-			int byteInt = 0;
-
-			std::istringstream hexStream(hexStr);
-			hexStream >> std::hex >> byteInt;
-
-			if (hexStream.fail())
-				throw std::runtime_error("Invalid hex in percent-encoding: " + hexStr);
-
-			decoded << static_cast<char>(byteInt);
-			i += 3;
-		}
-		else if (encoded[i] == '+')
-		{
-			decoded << ' '; // '+' means space in query strings
-			i++;
-		}
-		else
-		{
-			decoded << encoded[i];
-			i++;
-		}
-	}
-
-	return decoded.str();
 }
 
 void toLowercase(std::string& s)

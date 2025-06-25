@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpTransaction.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:16:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/24 02:34:41 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/25 21:06:37 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@ HttpTransaction::HttpTransaction()
 
 HttpTransaction::HttpTransaction(const HttpTransaction &other)
 	: _method(other._method),
-	  _request(other._request),
+	  _uri(other._uri),
 	  _connectionKeepAlive(other._connectionKeepAlive),
 	  _protocol(other._protocol),
 	  _headers(other._headers),
@@ -28,7 +28,7 @@ HttpTransaction::HttpTransaction(const HttpTransaction &other)
 
 HttpTransaction &HttpTransaction::operator=(const HttpTransaction &other) {
 	if (this != &other) {
-		_request = other._request;
+		_uri = other._uri;
 		_method = other._method;
 		_connectionKeepAlive = other._connectionKeepAlive;
 		_protocol = other._protocol;
@@ -42,9 +42,12 @@ HttpTransaction &HttpTransaction::operator=(const HttpTransaction &other) {
 
 HttpTransaction::~HttpTransaction() {}
 
+
+
+
 void HttpTransaction::log() const {
 	std::string message = "HTTP Transaction:\n"
-		"Request Line:\n\t" + _method + " " + _request + " " + _protocol + "\n"
+		"Request Line:\n\t" + _method + " " + _uri + " " + _protocol + "\n"
 		"Headers:\n";
 
 	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it) {
@@ -56,6 +59,11 @@ void HttpTransaction::log() const {
 	g_logger.log(LOG_DEBUG, message);
 }
 
+
+/*-------------------------
+	Getters and Setters
+---------------------------*/
+
 int HttpTransaction::getStatus() const {
 	return _status;
 }
@@ -65,7 +73,7 @@ std::string HttpTransaction::getMethod() const {
 }
 
 std::string HttpTransaction::getRequest() const {
-	return _request;
+	return _uri;
 }
 
 std::string HttpTransaction::getProtocol() const {

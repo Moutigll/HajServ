@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/21 15:13:09 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/25 16:40:13 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/25 17:23:20 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,10 +33,7 @@ HttpError &HttpError::operator=(const HttpError &src)
 
 HttpError::~HttpError() {}
 
-void HttpError::setCode(int code)
-{
-	_code = code;
-}
+
 
 std::map<int, std::string> HttpError::_initHttpErrors()
 {
@@ -86,6 +83,24 @@ std::map<int, std::string> HttpError::_initHttpErrors()
 	return codes;
 }
 
+std::string	HttpError::getFilePath( void )
+{
+	std::string errorPage = _server._root_error;
+	std::map<int, std::string>::const_iterator it = _server._errors.find(this->_code);
+	if (it != _server._errors.end())
+	{
+		if (errorPage[errorPage.length() - 1] != '/')
+		errorPage += '/';
+		return errorPage + it->second;
+	}
+	return "";
+}
+
+
+/*-------------------------
+	Getters and Setters
+---------------------------*/
+
 std::string	HttpError::getMessage(int code) const
 {
 	std::map<int, std::string>::const_iterator it = _HttpErrors.find(code);
@@ -94,25 +109,14 @@ std::string	HttpError::getMessage(int code) const
 	return std::string("Unknown Status");
 }
 
-std::string	HttpError::getFilePath( void )
-{
-	std::string error_page = _server._root_error;
-	std::map<int, std::string>::const_iterator it = _server._errors.find(this->_code);
-	if (it != _server._errors.end())
-	{
-		if (error_page[error_page.length() - 1] != '/')
-			error_page += '/';
-		return error_page + it->second;
-	}
-	return "";
+int HttpError::getCode() const {
+	return _code;
 }
 
-void HttpError::setServer(const t_server &server)
-{
+void HttpError::setServer(const t_server &server) {
 	_server = server;
 }
 
-int HttpError::getCode() const
-{
-	return _code;
+void HttpError::setCode(int code) {
+	_code = code;
 }

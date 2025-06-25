@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/24 03:40:31 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/25 18:45:20 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -340,7 +340,7 @@ bool Config::parseLocation(std::ifstream &file, int &line_number, t_location &lo
 		}
 		if (line.rfind("autoindex", 0) == 0)
 		{
-			loc._autoindex = getSecondElem(line) == "on";
+			loc._autoindex = getSecondElem(line) == "on;";
 			continue;
 		}
 		if (line.rfind("return", 0) == 0)

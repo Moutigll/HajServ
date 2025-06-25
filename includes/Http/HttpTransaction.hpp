@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpTransaction.hpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:11:03 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/24 16:01:33 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/25 21:05:52 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,16 @@
 
 #include "../Utils.hpp"
 
+/**
+ * @class HttpTransaction
+ * @brief Abstract base class representing an HTTP transaction (request or response).
+ *
+ * This class provides common members and interface for HTTP requests and responses.
+ * It manages HTTP method, URI, protocol, headers, body, status code, and connection state.
+ * 
+ * Derived classes must implement the pure virtual method isComplete() to indicate 
+ * whether the transaction is fully received or ready.
+ */
 class HttpTransaction {
 	public:
 		HttpTransaction();
@@ -33,7 +43,7 @@ class HttpTransaction {
 
 	protected:
 		std::string							_method;
-		std::string							_request;
+		std::string							_uri; // The request URI
 		bool								_connectionKeepAlive;
 		std::string							_protocol;
 		std::map<std::string, std::string>	_headers;

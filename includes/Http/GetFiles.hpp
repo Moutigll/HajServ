@@ -6,12 +6,14 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 02:24:15 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/25 16:38:08 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/25 19:49:35 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef GETFILES_HPP
 # define GETFILES_HPP
+
+# include <dirent.h>
 
 # include "../Utils.hpp"
 
@@ -34,26 +36,14 @@ t_location	*findBestLocation(t_server *server, const std::string &uri);
 bool		checkMethod(const std::string &method, const std::vector<std::string> &allowed_methods);
 
 /**
- * @brief Strips the location prefix from a request URI.
+ * @brief Generates an autoindex HTML page for a directory.
+ * This function creates an HTML page listing the contents of a directory,
+ * including links to files and subdirectories.
+ * @param uri the URI of the directory being indexed
+ * @param directory_path the path to the directory to index
+ * @return std::string an HTML string representing the autoindex page
  * 
- * This function removes the specified location path from the beginning of the request URI,
- * allowing for easier handling of requests that match a specific location.
- * 
- * @param request the full request URI
- * @param location_path the path of the location to strip
- * @return std::string the request URI with the location path stripped
  */
-std::string	stripLocationPrefix(std::string const &request, std::string const &location_path);
-
-/**
- * @brief Joins a root path with a relative path.
- * 		This function concatenates a root directory with a relative path and
- * 		removes any redundant slashes.
- * 
- * @param root the root directory path
- * @param path the relative path to join with the root
- * @return std::string the combined path, ensuring no double slashes
- */
-std::string	joinPaths(std::string const &root, std::string const &path);
+std::string	generateAutoindexPage(const std::string &uri, const std::string &directory_path);
 
 #endif
