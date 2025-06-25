@@ -92,19 +92,44 @@ Here are some example graphs from the `/examples` directory:
 
 ### Cloudflare dns
 
+Cloudflare DNS exhibits **initial responsiveness** with **low jitter**, maintaining **tight 5ms latency bands** for the first 4 seconds. Around **2 seconds**, a subtle 1ms delay shift appears, followed by a **progressive soft denial** of traffic after 4 seconds. The rejection pattern is **organic but structured**, with **occasional sharp spike**s, notably a **dominant rejection peak at 4ms**, and rarer outliers reaching up to 70ms.
+
 ![Cloudflare 1.1.1.1](examples/Cloudflare-dns.png)
 
+---
+
+### Wikipedia
+
+**Wikipedia** demonstrates remarkable consistency and reliability, with **zero** failed requests and an **extremely narrow latency** range (`29.56ms` to `31.76ms`).
+
+![Wikipedia](examples/Wikipedia.org.png)
+
+```bash
+Duration:             14.94 seconds
+Total requests:       48866
+Successful:           48866
+Failed:               0
+Average time (ms):    29.93
+Median time (ms):     29.82
+Average requests/sec: 3271.75
+Longest:              31.76ms
+Shortest:             29.56ms
+```
+
+---
+
 ### Google.com  
+
+Requests to **google.com** show a **highly randomized** distribution between **200ms and 550ms**, with **uniformly scattered response times** and **no discernible pattern**. This level of entropy and even dispersion is **remarkably unique**, possibly indicative of **heavy anycast balancing** or **aggressive obfuscation of internal routing behaviors**.
+
 ![google.com](examples/google.com.png)
 
 ---
 
-### Docker Hub  
-![docker-1-95](examples/Docker.png)
-
----
-
 ### OSTJourney (self-hosted)  Nginx + lim req/s and custom burst
+
+The rate-limiting behavior is clearly visible, with a **distinct boundary line** marking the allowed request rate. **Occasional bursts** are permitted, showing up as **regular bumps** at fixed intervals, consistent with a **configured request burst policy**.
+
 ![OSTJourney](examples/OSTJourney.png)
 
 ---
