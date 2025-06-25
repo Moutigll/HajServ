@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/25 21:03:16 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/25 21:27:41 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -177,15 +177,15 @@ static int	getFileInfos(const std::string &filePath, struct stat &fileStat, int 
 }
 
 void	HttpResponse::setFileHeaders() {
+	_ErrorStatus.setServer(_server);
 	if (_filePath.empty())
 		getFile();
-
+	std::cout << "status: " << _status << std::endl;
 	if (_status >= 400) {
 		if (_ErrorStatus.getCode() == 200)
 			_ErrorStatus.setCode(_status);
-		_ErrorStatus.setServer(_server);
 		_filePath = _ErrorStatus.getFilePath();
-		if (_filePath.empty()) {
+		if (_filePath.empty() || access(_filePath.c_str(), R_OK) != 0) {
 			buildErrorPage();
 			return;
 		}
@@ -193,18 +193,16 @@ void	HttpResponse::setFileHeaders() {
 
 	if (_filePath.empty())
 		return;
-	std::cout << "Serving file: " << _filePath << std::endl;
 	struct stat	fileStat;
 	int			fd = -1;
 
 	int fileStatus = getFileInfos(_filePath, fileStat, fd);
 	if (fileStatus != 200) {
 		setStatus(fileStatus);
-		_ErrorStatus.setServer(_server);
 		_filePath = _ErrorStatus.getFilePath();
-		if (fileStatus == 500)
+		if (_status == 500)
 			g_logger.log(LOG_ERROR, "Internal server error while accessing file: " + _filePath);
-		if (_filePath.empty()) {
+		if (_filePath.empty() || access(_filePath.c_str(), R_OK) != 0) {
 			buildErrorPage();
 			return;
 		}
@@ -283,11 +281,19 @@ void HttpResponse::getFile()
 			}
 		}
 		// 5.b) autoindex ?
-		if (loc->_autoindex && exists && S_ISDIR(st.st_mode))
+		if (exists && S_ISDIR(st.st_mode))
 		{
-			_body = generateAutoindexPage(uri, full);
-			setStatus(200);
-			return;
+			if (access(full.c_str(), R_OK) != 0)
+			{
+				setStatus(403); // Directory exists but cannot be read
+				return;
+			}
+			if (loc->_autoindex)
+			{
+				_body = generateAutoindexPage(uri, full);
+				setStatus(200);
+				return;
+			}
 		}
 		setStatus(exists ? 403 : 404);
 		return;
