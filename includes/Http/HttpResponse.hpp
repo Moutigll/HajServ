@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:26:55 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 00:34:40 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/26 00:50:16 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -122,24 +122,5 @@ class HttpResponse : public HttpTransaction {
 		char		**buildCGIEnv(std::vector<std::string> &envVec, const std::string &scriptPath) const;
 		bool		executeCGI(const std::string &Command, const std::string &scriptPath, int timeouts);
 };
-
-// HTML templates for error responses
-#define HTML_HEADER "<!DOCTYPE html><html lang=\"en\"><head>" \
-	"<meta charset=\"UTF-8\">" \
-	"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" \
-	"<title>Error</title>" \
-	"<style>" \
-	"body{margin:0;padding:0;font-family:'Segoe UI',sans-serif;" \
-	"background:linear-gradient(to bottom,#a0d8ef,#ffffff);" \
-	"display:flex;justify-content:center;align-items:center;height:100vh;text-align:center;color:#00334e;}" \
-	".card{background:#fff;border-radius:20px;padding:2rem;box-shadow:0 8px 16px rgba(0,0,0,0.15);" \
-	"max-width:500px;width:90%;}" \
-	"h1{font-size:2rem;margin-bottom:0.5rem;}" \
-	"p{font-size:1rem;line-height:1.5;}" \
-	".footer{margin-top:1rem;font-size:0.8rem;color:#555;}" \
-	"</style></head><body><div class=\"card\">"
-
-#define HTML_FOOTER "<div class=\"footer\">" \
-	"<p>HajServer/2.0.1</p></div></div></body></html>"
 
 #endif

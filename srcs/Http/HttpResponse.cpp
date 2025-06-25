@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 00:36:25 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/26 01:18:19 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -220,16 +220,6 @@ void	HttpResponse::setFileHeaders() {
 	_headers["Content-Length"] = to_string(fileStat.st_size);
 	_headers["Content-Type"] = getMimeType(_filePath);
 }
-
-void	HttpResponse::buildErrorPage() {
-	_body = HTML_HEADER;
-	_body += "<h1> Error " + to_string(_status) + "</h1>\n";
-	_body += "<p>" + _ErrorStatus.getMessage(_status) + "</p>\n";
-	_body += HTML_FOOTER;
-	_headers["Content-Type"] = "text/html";
-	g_logger.log(LOG_WARNING, "No error page defined for status code " + to_string(_status));
-}
-
 
 /*-------------------
 		Get File
@@ -479,6 +469,7 @@ t_buffer	HttpResponse::sendResponse()
 {
 	t_buffer	buf = { NULL, 0 };
 
+	_isComplete = false;
 	if (!_isHeadersSent)
 	{
 		if (_response.empty())
@@ -499,7 +490,7 @@ t_buffer	HttpResponse::sendResponse()
 
 		size_t body_len = 0;
 		if (has_body)
-			body_len = std::min(_body.size(), max_body_size);
+			body_len = std::min(_body.size(), max_body_size - header_len);
 		else if (has_file)
 			body_len = max_body_size - header_len;
 
@@ -514,6 +505,9 @@ t_buffer	HttpResponse::sendResponse()
 			_body.erase(0, body_len);
 			if (_body.empty() && !has_file)
 				_isComplete = true;
+			buf.data = response_copy;
+			buf.size = total_size;
+			return buf;
 		}
 		else if (has_file)
 		{
@@ -525,7 +519,6 @@ t_buffer	HttpResponse::sendResponse()
 				return buf;
 			}
 			body_len = n;
-			_isComplete = false;
 			if (n == 0 || (size_t)n < max_body_size - header_len)
 			{
 				close(_readFd);
