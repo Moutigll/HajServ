@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/25 18:45:20 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/25 22:45:57 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -189,7 +189,7 @@ bool Config::parseServer(std::ifstream &file, int &line_number)
 			if (!value.empty())
 				location._path = value;
 			parseLocation(file, line_number, location);
-			if (location._path.empty() || location._root.empty())
+			if (location._path.empty() || (location._root.empty() && location._path[location._path.size() - 1] != '$'))
 			{
 				std::cerr << RED << "Error: Location parsing error." << RESET << std::endl;
 				return false;

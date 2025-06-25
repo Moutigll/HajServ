@@ -3,14 +3,51 @@
 /*                                                        :::      ::::::::   */
 /*   GetFiles.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 02:22:13 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/25 19:49:44 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/25 23:29:33 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../includes/Http/GetFiles.hpp"
+
+t_location *GetCgi(t_server *server, const std::string &uri)
+{
+	if (!server)
+		return NULL;
+
+	for (size_t i = 0; i < server->_locations.size(); ++i)
+	{
+		t_location &loc = server->_locations[i];
+		const std::string &path = loc._path;
+
+		// We only handle regex locations ending with '$'
+		if (path.empty() || path[path.size() - 1] != '$')
+			continue; // skip this location
+
+		size_t dollarPos = path.size() - 1;
+		size_t dotPos = path.rfind('.', dollarPos);
+		if (dotPos == std::string::npos || dotPos >= dollarPos)
+			continue; // no extension found, skip
+
+		std::string ext = path.substr(dotPos, dollarPos - dotPos); // extract like ".py"
+
+		// Check if URI ends with this extension
+		if (uri.size() >= ext.size())
+		{
+			if (uri.compare(uri.size() - ext.size(), ext.size(), ext) == 0)
+			{
+				// Also confirm location has cgi_pass configured
+				std::map<std::string, std::string>::const_iterator it = loc._loc_data.find("cgi_root");
+				if (it != loc._loc_data.end() && !it->second.empty())
+					return &loc;
+			}
+		}
+	}
+
+	return NULL; // no matching location found
+}
 
 t_location	*findBestLocation(t_server *server, const std::string &uri)
 {

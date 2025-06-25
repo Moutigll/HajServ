@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   GetFiles.hpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 02:24:15 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/25 19:49:35 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/25 23:23:15 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,5 +45,7 @@ bool		checkMethod(const std::string &method, const std::vector<std::string> &all
  * 
  */
 std::string	generateAutoindexPage(const std::string &uri, const std::string &directory_path);
+
+t_location	*GetCgi(t_server *server, const std::string &uri);
 
 #endif

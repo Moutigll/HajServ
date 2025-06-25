@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:26:55 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/25 21:12:23 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/26 00:34:40 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -118,6 +118,9 @@ class HttpResponse : public HttpTransaction {
 		 * @return t_buffer 
 		 */
 		t_buffer	getBody();
+
+		char		**buildCGIEnv(std::vector<std::string> &envVec, const std::string &scriptPath) const;
+		bool		executeCGI(const std::string &Command, const std::string &scriptPath, int timeouts);
 };
 
 // HTML templates for error responses
