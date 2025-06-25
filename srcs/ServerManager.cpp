@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerManager.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:01 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/24 02:32:34 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/25 04:40:29 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -316,14 +316,14 @@ void	ServerManager::handleEpollOutEvent(int fd, std::map<int, Connection *>::ite
 		return;
 	}
 	
-	const char *write_buffer = it->second->getReadBuffer();
-	if (!write_buffer)
+	t_buffer write_buffer = it->second->getReadBuffer();
+	if (!write_buffer.data || write_buffer.size == 0)
 	{
 		g_logger.log(LOG_ERROR, "No write buffer available for fd " + to_string(fd));
 		updateEpoll(fd, EPOLLIN | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_MOD);
 		return;
 	}
-	ssize_t	bytes_written = send(fd, write_buffer, strlen(write_buffer), 0);
+	ssize_t	bytes_written = send(fd, write_buffer.data, write_buffer.size, 0);
 	if (bytes_written < 0)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -345,19 +345,18 @@ void	ServerManager::handleEpollOutEvent(int fd, std::map<int, Connection *>::ite
 		return;
 	}
 	it->second->successWrite();
-	if (it->second->getState() == DONE)
-	{
-		g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " finished writing " + to_string(bytes_written) + " bytes, closing connection");
-		closeConnection(fd, it);
-	}
-	else if (it->second->getState() == READING)
+	if (it->second->getState() == READING)
 	{
 		g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " switched to READING state after writing " + to_string(bytes_written) + " bytes");
 		updateEpoll(fd, EPOLLIN | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_MOD);
 	}
+	else if (it->second->getState() == DONE)
+	{
+		g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " finished writing " + to_string(bytes_written) + " bytes, closing connection");
+		closeConnection(fd, it);
+	}
 	else
 		g_logger.log(LOG_DEBUG, "Partial write on fd " + to_string(fd) + ", " + to_string(bytes_written) + " bytes written, waiting for more data");
-	
 }
 
 

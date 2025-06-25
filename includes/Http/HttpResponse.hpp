@@ -20,6 +20,7 @@
 #include "HttpTransaction.hpp"
 #include "HttpRequest.hpp"
 #include "HttpError.hpp"
+#include "GetFiles.hpp"
 
 const std::string VERSION = "HajServer/2.0.1";
 class HttpResponse : public HttpTransaction {
@@ -63,13 +64,14 @@ class HttpResponse : public HttpTransaction {
 		 * On subsequent calls:
 		 * - Sends the remaining body data or reads the next chunk from the file descriptor.
 		 * 
-		 * @return char* Pointer to a dynamically allocated buffer containing the data to send.
+		 * @return t_buffer
+		 *				A buffer containing the response data to be sent and its size.
 		 *				The caller is responsible for freeing this memory.
 		 *				Returns NULL in case of an error.
 		 * 
 		 * @warning Memory allocated with new[] must be freed by the caller using delete[].
 		 */
-		char	*sendResponse();
+		t_buffer	sendResponse();
 
 		HttpError	getStatus() const;
 	private:
@@ -89,7 +91,9 @@ class HttpResponse : public HttpTransaction {
 
 		void		buildErrorPage();
 
-		char		*getBody();
+		void		getFile();
+
+		t_buffer	getBody();
 };
 
 #define HTML_HEADER "<!DOCTYPE html><html lang=\"en\"><head>" \

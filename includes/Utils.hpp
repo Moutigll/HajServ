@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 23:50:18 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/24 16:05:39 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/25 04:32:34 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,6 +55,12 @@ struct t_server
 	size_t								_max_body_size;
 
 	t_server() : _timeout(30), _max_body_size(4096) {} // Default timeout 30s, max body size 4096 bytes
+};
+
+struct t_buffer
+{
+	char	*data;
+	size_t	size;
 };
 
 /**

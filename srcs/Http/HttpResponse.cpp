@@ -25,7 +25,7 @@ HttpResponse::HttpResponse(const t_server &server, HttpRequest &request)
 	_method = request.getMethod();
 	_request = request.getRequest();
 	_protocol = request.getProtocol();
-	_connectionKeepAlive = request.isConnectionKeepAlive();
+	_headers.clear();
 }
 
 HttpResponse::HttpResponse(const HttpResponse &other)
@@ -52,6 +52,60 @@ HttpResponse &HttpResponse::operator=(const HttpResponse &other) {
 HttpResponse::~HttpResponse() {}
 
 
+void HttpResponse::getFile()
+{
+	std::string	relative_path;
+	t_location	*location;
+
+	location = findBestLocation(&_server, _request);
+	if (!location)
+	{
+		setStatus(404);
+		return;
+	}
+	if (!checkMethod(_method, location->_methods))
+	{
+		setStatus(405);
+		return;
+	}
+
+	relative_path = stripLocationPrefix(_request, location->_path);
+	if (!relative_path.empty() && relative_path[0] == '/')
+		relative_path = relative_path.substr(1);
+
+	if (_request.size() > 0 && _request[_request.size() - 1] == '/')
+	{
+		if (!location->_indexes.empty())
+			_filePath = joinPaths(location->_root, joinPaths(relative_path, location->_indexes[0]));
+		else if (location->_autoindex)
+		{
+			_body = "<html><body><h1>Directory listing not implemented</h1></body></html>";
+			setStatus(200);
+			return;
+		}
+		else
+		{
+			setStatus(403);
+			return;
+		}
+	}
+	else
+		_filePath = joinPaths(location->_root, relative_path);
+
+
+	g_logger.log(LOG_DEBUG, "Serving file: " + _filePath);
+	if (_method == "GET")
+	{
+		if (access(_filePath.c_str(), F_OK) != 0)
+		{
+			setStatus(404);
+			return;
+		}
+	}
+
+	setStatus(200);
+}
+
 void	HttpResponse::construct()
 {
 	_response.clear();
@@ -60,7 +114,12 @@ void	HttpResponse::construct()
 	if (!_body.empty())
 		_response += "Content-Length: " + to_string(_body.size()) + "\r\n";
 	else
+	{
 		setFileHeaders();
+		if (!_body.empty()) // If it's a directory listing
+			_response += "Content-Length: " + to_string(_body.size()) + "\r\n" \
+			+ "Content-Type: text/html\r\n";
+	}
 	
 	// ----- Header Server -----
 	_response += "Server: " + VERSION + "\r\n";
@@ -91,42 +150,60 @@ HttpError HttpResponse::getStatus() const {
 	return _status;
 }
 
-char* HttpResponse::getBody() {
-	char*		buf	  = new char[_server._max_body_size + 1];
-	std::memset(buf, 0, _server._max_body_size + 1);
-	
-	if (_readFd >= 0) {
-		ssize_t n = read(_readFd, buf, _server._max_body_size);
-		if (n < 0) {
+t_buffer	HttpResponse::getBody()
+{
+	t_buffer	buf = { NULL, 0 };
+
+	if (_readFd >= 0)
+	{
+		char *data = new char[_server._max_body_size];
+		ssize_t n = read(_readFd, data, _server._max_body_size);
+		if (n < 0)
+		{
 			g_logger.log(LOG_ERROR, "Failed to read file: " + std::string(strerror(errno)));
-			delete[] buf;
-			return NULL;
+			delete[] data;
+			return buf;
 		}
-		if (n == 0) {
+		if (n == 0)
+		{
 			close(_readFd);
-			_readFd	 = -1;
+			_readFd = -1;
 			_isComplete = true;
-			delete[] buf;
-			return NULL;
+			delete[] data;
+			return buf;
 		}
-		buf[n] = '\0';
-		if (static_cast<size_t>(n) < _server._max_body_size) {
+		if ((size_t)n < _server._max_body_size)
+		{
 			close(_readFd);
-			_readFd	 = -1;
+			_readFd = -1;
 			_isComplete = true;
 		}
-	} else {
-		size_t copy_len = std::min(_body.size(), 
-		static_cast<size_t>(_server._max_body_size));
-		std::strncpy(buf, _body.c_str(), copy_len);
-		buf[copy_len] = '\0';
-		_isComplete   = true;
+		buf.data = data;
+		buf.size = n;
 	}
-	
+	else if (!_body.empty())
+	{
+		size_t len = std::min(_body.size(), static_cast<size_t>(_server._max_body_size));
+		char *data = new char[len];
+		std::memcpy(data, _body.c_str(), len);
+		_body.erase(0, len);
+		if (_body.empty())
+			_isComplete = true;
+		buf.data = data;
+		buf.size = len;
+	}
+	else
+	{
+		_isComplete = true;
+	}
+
 	return buf;
 }
 
-char* HttpResponse::sendResponse() {
+t_buffer	HttpResponse::sendResponse()
+{
+	t_buffer	buf = { NULL, 0 };
+
 	if (!_isHeadersSent)
 	{
 		if (_response.empty())
@@ -134,53 +211,59 @@ char* HttpResponse::sendResponse() {
 		if (_response.empty())
 		{
 			g_logger.log(LOG_ERROR, "Failed to construct response: empty response");
-			return NULL;
+			return buf;
 		}
 		_isHeadersSent = true;
-		
+
 		size_t header_len = _response.size();
 		size_t max_body_size = _server._max_body_size;
 		size_t total_size = header_len;
-		
+
 		bool has_body = !_body.empty();
 		bool has_file = _readFd >= 0;
-		
-		// Calculate how much body data to include now
+
 		size_t body_len = 0;
 		if (has_body)
-		body_len = std::min(_body.size(), max_body_size);
+			body_len = std::min(_body.size(), max_body_size);
 		else if (has_file)
-		body_len = max_body_size;
-		
+			body_len = max_body_size - header_len;
+
 		total_size += body_len;
-		
-		char* response_copy = new char[total_size + 1];
-		std::memset(response_copy, 0, total_size + 1);
-		
+
+		char *response_copy = new char[total_size];
 		std::memcpy(response_copy, _response.c_str(), header_len);
-		
-		if (has_body) {
+
+		if (has_body)
+		{
 			std::memcpy(response_copy + header_len, _body.c_str(), body_len);
 			_body.erase(0, body_len);
 			if (_body.empty() && !has_file)
-			_isComplete = true;
-		} else if (has_file) {
+				_isComplete = true;
+		}
+		else if (has_file)
+		{
 			ssize_t n = read(_readFd, response_copy + header_len, body_len);
-			if (n < 0) {
+			if (n < 0)
+			{
 				g_logger.log(LOG_ERROR, "Failed to read file: " + std::string(strerror(errno)));
 				delete[] response_copy;
-				return NULL;
+				return buf;
 			}
-			if (n == 0 || (size_t)n < body_len) {
+			body_len = n;
+			_isComplete = false;
+			if (n == 0 || (size_t)n < max_body_size - header_len)
+			{
 				close(_readFd);
 				_readFd = -1;
 				_isComplete = true;
 			}
-		} else {
-			_isComplete = true;
 		}
-		
-		return response_copy;
+		else
+			_isComplete = true;
+
+		buf.data = response_copy;
+		buf.size = header_len + body_len;
+		return buf;
 	}
 	return getBody();
 }
@@ -235,6 +318,9 @@ void	HttpResponse::buildErrorPage() {
 }
 
 void	HttpResponse::setFileHeaders() {
+	if (_filePath.empty())
+		getFile();
+
 	if (_status >= 400) {
 		if (_ErrorStatus.getCode() == 200)
 			_ErrorStatus.setCode(_status);
@@ -258,6 +344,8 @@ void	HttpResponse::setFileHeaders() {
 		if (fd >= 0)
 			close(fd);
 		setStatus(404);
+		buildErrorPage();
+		_headers["Content-Type"] = "text/html";
 		return;
 	}
 

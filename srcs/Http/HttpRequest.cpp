@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/20 21:05:28 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/24 18:04:48 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/25 03:35:34 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -207,6 +207,8 @@ bool	HttpRequest::parseHeaders(const std::string &headers)
 		// trim initial spaces/tabs in value
 		while (!value.empty() && (value[0] == ' ' || value[0] == '\t'))
 			value.erase(0, 1);
+		while (!value.empty() && (value[value.size() - 1] == ' ' || value[value.size() - 1] == '\t' || value[value.size() - 1] == '\r'))
+			value.erase(value.size() - 1);
 		while (!key.empty() && (key[key.size() - 1] == ' ' || key[key.size() - 1] == '\t'))
 			key.erase(key.size() - 1);
 

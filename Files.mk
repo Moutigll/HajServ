@@ -8,4 +8,5 @@ FILES		=	srcs/Config \
 				srcs/Http/HttpTransaction \
 				srcs/Http/HttpRequest \
 				srcs/Http/HttpResponse \
-				srcs/Http/HttpError
+				srcs/Http/HttpError \
+				srcs/Http/GetFiles

@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/30 13:59:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/23 17:01:21 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/25 16:41:20 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -29,8 +29,22 @@ class HttpError
 
 		void			setCode(int code);
 		void			setServer(const t_server &server);
+
+		/**
+		 * @brief Returns the HTTP error message corresponding to the given code.
+		 * 
+		 * @param code The HTTP error code (e.g., 404, 500).
+		 * @return std::string 
+		 */
 		std::string		getMessage(int code) const;
-		int				getCode() const { return _code; }
+		int				getCode() const;
+
+		/**
+		 * @brief Get the File Path if the error has a t_server associated.
+		 * 		It searches for the error code in the server's error map.
+		 * 
+		 * @return std::string the file path associated with the error code,
+		 */
 		std::string		getFilePath(void);
 	private:
 		int			_code;

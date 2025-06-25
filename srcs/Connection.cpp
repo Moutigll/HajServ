@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Connection.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:12 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/24 03:30:39 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/25 04:57:26 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,11 +15,15 @@
 
 Connection::Connection(void)
 	: _fd(-1), _port(NULL), _state(READING), _server(NULL),
-	  _closed(true), _writeBuffer(NULL), _lastActivity(std::time(NULL)), _httpTransaction(NULL), _httpRequest(NULL) {}
+	  _closed(true), _lastActivity(std::time(NULL)), _httpTransaction(NULL), _httpRequest(NULL)
+{
+	_writeBuffer.data = NULL;
+	_writeBuffer.size = 0;
+}
 
 Connection::Connection(int fd, Port *port)
 	: _fd(fd), _port(port), _state(READING), _server(NULL),
-	  _closed(fd < 0), _writeBuffer(NULL), _lastActivity(std::time(NULL)), _httpTransaction(NULL), _httpRequest(NULL)
+	  _closed(fd < 0), _lastActivity(std::time(NULL)), _httpTransaction(NULL), _httpRequest(NULL)
 {
 	if (port != NULL)
 	{
@@ -29,11 +33,13 @@ Connection::Connection(int fd, Port *port)
 	}
 	else
 		this->_closed = true;
+	_writeBuffer.data = NULL;
+	_writeBuffer.size = 0;
 }
 
 Connection::Connection(const Connection &other)
 	: _fd(other._fd), _port(other._port), _state(other._state),
-	  _server(other._server), _closed(other._closed), _writeBuffer(NULL),
+	  _server(other._server), _closed(other._closed),
 	  _lastActivity(other._lastActivity), _httpTransaction(other._httpTransaction), _httpRequest(other._httpRequest) {}
 
 
@@ -65,10 +71,11 @@ Connection::~Connection(void)
 		delete _httpTransaction;
 		_httpTransaction = NULL;
 	}
-	if (_writeBuffer != NULL)
+	if (_writeBuffer.data != NULL)
 	{
-		delete[] _writeBuffer;
-		_writeBuffer = NULL;
+		delete[] _writeBuffer.data;
+		_writeBuffer.data = NULL;
+		_writeBuffer.size = 0;
 	}
 }
 bool	Connection::isClosed(void) const
@@ -136,14 +143,15 @@ bool Connection::parseRequest(char *readBuffer)
 	}
 	this->_httpRequest = request;
 	this->_httpTransaction = NULL;
+	g_logger.log(LOG_DEBUG, "Request parsed successfully on fd: " + to_string(this->_fd));
 	_httpRequest->log();
 	this->_state = WRITING;
 	return true; // Request is complete, switch to writing state
 }
 
-char *Connection::getReadBuffer(void)
+t_buffer	Connection::getReadBuffer(void)
 {
-	if (this->_writeBuffer != NULL)
+	if (this->_writeBuffer.data != NULL)
 		return this->_writeBuffer;
 	if (this->_httpTransaction == NULL)
 	{
@@ -153,20 +161,33 @@ char *Connection::getReadBuffer(void)
 			this->_httpTransaction = new HttpResponse(*this->_server);
 	}
 	if (this->_httpTransaction == NULL)
-		return NULL;
+	{
+		t_buffer buf;
+		buf.data = NULL;
+		buf.size = 0;
+		return buf;
+	}
 	HttpResponse* response = dynamic_cast<HttpResponse*>(this->_httpTransaction);
 	_writeBuffer = response->sendResponse();
 	if (response->isComplete())
 	{
+		if (this->_httpTransaction->isConnectionKeepAlive())
+			this->_state = READING; // Keep connection alive, switch to reading state
+		else
+			this->_state = DONE; // Close connection after response
 		delete this->_httpTransaction;
 		this->_httpTransaction = NULL;
-		this->_state = DONE; // Request is complete, switch to done state
 	}
 	return this->_writeBuffer;
 }
 
 void Connection::successWrite(void)
 {
-	delete[] this->_writeBuffer;
-	this->_writeBuffer = NULL; // Clear write buffer after successful write
+	// Clear write buffer after successful write
+	if (this->_writeBuffer.data != NULL)
+	{
+		delete[] this->_writeBuffer.data;
+		this->_writeBuffer.data = NULL;
+		this->_writeBuffer.size = 0;
+	}
 }
