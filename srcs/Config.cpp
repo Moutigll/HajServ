@@ -6,12 +6,13 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/25 22:45:57 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/26 22:49:30 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Config.hpp"
 #include "../includes/Logger.hpp"
+#include <iostream>
 
 Config::Config()
 	: _finished(false), _log_connections(false), _log_request(false), _log_console(false), _log_file(""), _log_level("none"), _servers()
@@ -143,6 +144,44 @@ bool Config::parseGlobals(std::string &line, int &line_number)
 	return true;
 }
 
+bool Config::defaultingServer(t_server &server)
+{
+	if (server._hosts.empty())
+	{
+		server._hosts.push_back("localhost");
+		std::cout << YELLOW << "Warning: No server_name directive found. Defaulting to 'localhost'." << RESET << std::endl;
+	}
+	if (server._ports.empty())
+	{
+		server._ports.push_back(80);
+		std::cout << YELLOW << "Warning: No listen directive found. Defaulting to port 80." << RESET << std::endl;
+	}
+	if (server._methods.empty())
+	{
+		server._methods.push_back("GET");
+		server._methods.push_back("POST");
+		server._methods.push_back("DELETE");
+		std::cout << YELLOW << "Warning: No allowed_methods directive found. Defaulting to GET, POST, DELETE." << RESET << std::endl;
+	}
+	for (unsigned long i = 0; i < server._locations.size(); i++)
+	{
+		if (server._locations[i]._methods.empty())
+		{
+			std::cout << YELLOW << "Warning: Location '" << server._locations[i]._path << "' has no methods directive. Defaulting to general methods." << RESET << std::endl;
+			for (unsigned long j = 0; j < server._methods.size(); j++)
+				server._locations[i]._methods.push_back(server._methods[j]);
+		}
+		if (server._locations[i]._root.empty() && server._root.empty())
+		{
+			std::cerr << RED << "Error: Server '" << i + 1 << "' is missing root directive." << RESET << std::endl;
+			return false;
+		}
+		else if (server._locations[i]._root.empty())
+			server._locations[i]._root = server._root;
+	}
+	return true;
+}
+
 bool Config::parseServer(std::ifstream &file, int &line_number)
 {
 	t_server server;
@@ -156,22 +195,8 @@ bool Config::parseServer(std::ifstream &file, int &line_number)
 			continue;
 		if (line == "};")
 		{
-			if (server._hosts.empty())
-			{
-				std::cerr << RED << "Error: Server block is missing server_name directive." << RESET << std::endl;
+			if (!defaultingServer(server))
 				return false;
-			}
-			if (server._ports.empty())
-			{
-				std::cerr << RED << "Error: Server block is missing listen directive." << RESET << std::endl;
-				return false;
-			}
-			if (server._methods.empty())
-			{
-				server._methods.push_back("GET");
-				server._methods.push_back("POST");
-				server._methods.push_back("DELETE");
-			}
 			_servers.push_back(server);
 			return true;
 		}
@@ -188,8 +213,9 @@ bool Config::parseServer(std::ifstream &file, int &line_number)
 			std::string value = getSecondElem(line);
 			if (!value.empty())
 				location._path = value;
-			parseLocation(file, line_number, location);
-			if (location._path.empty() || (location._root.empty() && location._path[location._path.size() - 1] != '$'))
+			if (!parseLocation(file, line_number, location))
+				return false;
+			if (location._path.empty())
 			{
 				std::cerr << RED << "Error: Location parsing error." << RESET << std::endl;
 				return false;
@@ -239,13 +265,23 @@ bool Config::parseServer(std::ifstream &file, int &line_number)
 				return false;
 			}
 			if (value[value.length() - 1] == 'G')
-				server._max_body_size = size * 1024 * 1024 * 1024; // Convert GB to bytes
+				server._maxBodySize = size * 1024 * 1024 * 1024; // Convert GB to bytes
 			else if (value[value.length() - 1] == 'M')
-				server._max_body_size = size * 1024 * 1024; // Convert MB to bytes
+				server._maxBodySize = size * 1024 * 1024; // Convert MB to bytes
 			else if (value[value.length() - 1] == 'K')
-				server._max_body_size = size * 1024; // Convert KB to bytes
+				server._maxBodySize = size * 1024; // Convert KB to bytes
 			else
-				server._max_body_size = size; // Default case, assume bytes
+				server._maxBodySize = size; // Default case, assume bytes
+			continue;
+		}
+		if (key == "root")
+		{
+			if (!server._root.empty())
+			{
+				std::cerr << RED << "Multiple root detected in server parsing at " << line_number << "." << RESET << std::endl;
+				return false;
+			}
+			server._root = value;
 			continue;
 		}
 
@@ -362,14 +398,37 @@ bool Config::parseLocation(std::ifstream &file, int &line_number, t_location &lo
 			loc._return_uri = url;
 			continue;
 		}
+		if (line.rfind("fastcgi_pass", 0) == 0)
+		{
+			std::string keyword;
+			std::string command, extension;
+
+			iss >> keyword;
+
+			if (!(iss >> command >> extension) || (iss >> std::ws && !iss.eof()))
+			{
+				std::cerr << RED << "Error: malformed 'return' directive — missing code or URL at line " << line_number << ": " << line << "" << RESET << std::endl;
+				return false;
+			}
+			if (!extension.empty() && extension[extension.length() - 1] == ';')
+				extension = extension.substr(0, extension.length() - 1);
+			loc._cgi[extension] = command;
+			continue;
+		}
 		std::string key, value;
 
 		if (!(iss >> key >> value) || (iss >> std::ws && !iss.eof()))
 			std::cerr << RED << "Syntax error at line " << line_number << ": '" << line << "'. No value was found." << RESET << std::endl;
 
-		value = value.substr(0, value.length() - 1);
+		if (value[value.length() -1] == ';')
+			value = value.substr(0, value.length() - 1);
 		if (key == "root")
 		{
+			if (!loc._root.empty())
+			{
+				std::cerr << RED << "Multiple root detected in location parsing at " << line_number << "." << RESET << std::endl;
+				return false;
+			}
 			loc._root = value;
 			continue;
 		}
@@ -378,7 +437,7 @@ bool Config::parseLocation(std::ifstream &file, int &line_number, t_location &lo
 			loc._indexes.push_back(value);
 			continue;
 		}
-		loc._loc_data[key] = value;
+		loc._cgi_timeout = atoi(value.c_str());
 	}
 	std::cerr << RED << "Location parsing finished without the end of bracket of server which is '}'." << RESET << std::endl;
 	return false;
@@ -468,6 +527,8 @@ static void printLocationStr(std::string &out, const t_location &loc, size_t ind
 	out += std::string(BRIGHT_PURPLE "\tLocation [") + to_string(index) + "]" RESET + "\n";
 	out += std::string("\t\t") + BRIGHT_CYAN "Path: " RESET + BRIGHT_WHITE + loc._path + RESET + "\n";
 	out += std::string("\t\t") + BRIGHT_CYAN "Autoindex: " RESET + (loc._autoindex ? BRIGHT_GREEN "on" RESET : BRIGHT_RED "off" RESET) + "\n";
+	out += std::string("\t\t") + BRIGHT_CYAN "Root: " RESET + BRIGHT_WHITE + loc._root + RESET + "\n";
+	out += std::string("\t\t") + BRIGHT_CYAN "Cgi Timeout: " RESET + BRIGHT_WHITE + to_string(loc._cgi_timeout) + RESET + "\n";
 
 	if (loc._return_code != 0)
 	{
@@ -477,8 +538,9 @@ static void printLocationStr(std::string &out, const t_location &loc, size_t ind
 
 	logVectorStr(out, "Methods", loc._methods, CYAN);
 	logVectorStr(out, "Try files", loc._try_files, BRIGHT_GREEN);
+	logVectorStr(out, "Indexes", loc._indexes, BRIGHT_GREEN);
 
-	logMapStr(out, "Additional data", loc._loc_data, BRIGHT_WHITE, BRIGHT_YELLOW);
+	logMapStr(out, "Cgi", loc._cgi, BRIGHT_WHITE, BRIGHT_YELLOW);
 }
 
 void Config::logConfig() const
@@ -498,7 +560,7 @@ void Config::logConfig() const
 
 		logVectorStr(out, "Methods", srv._methods, CYAN);
 		logVectorStr(out, "Server names", srv._hosts, BRIGHT_CYAN);
-		out += BRIGHT_YELLOW + std::string("\tMax body size: ") + BRIGHT_CYAN + to_string(srv._max_body_size) + " bytes" RESET + "\n";
+		out += BRIGHT_YELLOW + std::string("\tMax body size: ") + BRIGHT_CYAN + to_string(srv._maxBodySize) + " bytes" RESET + "\n";
 		out += BRIGHT_YELLOW + std::string("\tTimeout: ") + BRIGHT_CYAN + to_string(srv._timeout) + " s" RESET + "\n";
 		out += std::string(BRIGHT_BLUE "\tPorts (") + to_string(srv._ports.size()) + "):" RESET + "\n";
 		for (size_t j = 0; j < srv._ports.size(); j++)

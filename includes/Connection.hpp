@@ -91,11 +91,6 @@ class Connection
 		std::time_t			_lastActivity;
 		HttpTransaction		*_httpTransaction;
 		HttpRequest			*_httpRequest;
-		pid_t       		_cgiPid;
-		int         		_cgiPipeFd;
-		std::string			_cgiResponse;
-		time_t				_cgiStartTime;
-		int         		_cgiTimeout;
 		
 		/**
 		 * @brief Switch the connection to an error state.

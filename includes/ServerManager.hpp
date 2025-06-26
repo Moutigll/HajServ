@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerManager.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 16:45:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 02:53:05 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/26 20:10:49 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@
 # include "Connection.hpp"
 
 #define EPOLL_MAX_EVENTS 256 // Maximum number of events to handle in one epoll_wait call.
-#define EPOLL_TIMEOUT 100000 // Timeout in milliseconds for epoll_wait.
+#define EPOLL_TIMEOUT 1000 // Timeout in milliseconds for epoll_wait.
 
 /**
  * @class ServerManager
@@ -130,9 +130,6 @@ class ServerManager
 		void	handleEpollInEvent(int fd, std::map<int, Connection *>::iterator &it);
 
 		void	handleEpollOutEvent(int fd, std::map<int, Connection *>::iterator &it);
-
-		void	checkCgiTimeouts();
-		void	handleCgiRead(int fd, std::map<int, Connection*>::iterator &it);
 };
 
 #endif

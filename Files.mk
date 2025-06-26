@@ -11,4 +11,4 @@ FILES		=	srcs/Config \
 				srcs/Http/HttpError \
 				srcs/Http/GetFiles \
 				srcs/Http/ErrorPage \
-				srcs/Http/HandleCgi
+				srcs/CgiHandler

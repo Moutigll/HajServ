@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:26:55 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 03:26:29 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/26 21:05:14 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,15 +16,14 @@
 #include "HttpRequest.hpp"
 #include "HttpError.hpp"
 #include "GetFiles.hpp"
-#include "../Connection.hpp"
+#include "../CgiHandler.hpp"
 
-const std::string VERSION = "HajServ/2.1.0";
+const std::string VERSION = "HajServ/2.2.0";
 
 class HttpResponse : public HttpTransaction {
 	public:
 		HttpResponse(const t_server &server);
 		HttpResponse(const t_server &server, HttpRequest &request);
-		HttpResponse(const t_server &server, HttpRequest &request, Connection* conn);
 		HttpResponse(const HttpResponse &other);
 		HttpResponse &operator=(const HttpResponse &other);
 		virtual ~HttpResponse();
@@ -69,7 +68,7 @@ class HttpResponse : public HttpTransaction {
 		void	setStatus(int code);
 		void	setBody(const std::string &body);
 		
-		HttpError	getStatus() const;
+		HttpError		getStatus() const;
 		virtual bool	isComplete() const;
 	private:
 		t_server	_server; // Must be set, it is used to get the server configuration, paths and error pages
@@ -78,7 +77,7 @@ class HttpResponse : public HttpTransaction {
 		int			_readFd; // File descriptor for reading file content, if applicable
 		bool		_isHeadersSent; // Track if headers have been sent
 		HttpError	_ErrorStatus;
-		Connection* _connection;  // Add this
+		CgiHandler	*_cgiHandler; // Handler for CGI execution
 
 
 		/**
@@ -120,9 +119,6 @@ class HttpResponse : public HttpTransaction {
 		 * @return t_buffer 
 		 */
 		t_buffer	getBody();
-
-		char		**buildCGIEnv(std::vector<std::string> &envVec, const std::string &scriptPath) const;
-		bool		executeCGI(const std::string &Command, const std::string &scriptPath, int timeouts);
 };
 
 #endif

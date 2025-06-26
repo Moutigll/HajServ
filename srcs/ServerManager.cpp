@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerManager.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:01 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 04:00:19 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/26 20:08:56 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -168,7 +168,6 @@ void	ServerManager::start(void)
 			++i;
 		}
 		this->checkTimeouts();
-		this->checkCgiTimeouts();
 	}
 }
 
@@ -279,13 +278,6 @@ void	ServerManager::handleEpollInEvent(int fd, std::map<int, Connection *>::iter
 {
 	bool	parse_result = false;
 	ssize_t	bytes_read;
-
-	std::cout << "test" << std::endl;
-
-	if (it->second->getState() == CGI_PROCESSING) {
-        handleCgiRead(fd, it);
-        return;
-    }
 
 	while (1)
 	{
@@ -398,98 +390,4 @@ void	ServerManager::checkTimeouts(void)
 		else
 			++it;
 	}
-}
-
-void ServerManager::handleCgiRead(int fd, std::map<int, Connection*>::iterator &it) {
-    Connection* conn = it->second;
-    char buffer[4096];
-    ssize_t n;
-    bool done = false;
-
-    while (!done) {
-		std::cout << conn->getCgiTimeout() << std::endl;
-        n = read(conn->getCgiFd(), buffer, sizeof(buffer));
-        if (n > 0) {
-            conn->appendCgiResponse(buffer, n);
-        } else if (n == 0) {
-            // CGI process exited normally
-            conn->reapCgi();
-            done = true;
-        } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            // No data available, break to check timeout
-            break;
-        } else {
-            // Read error
-            g_logger.log(LOG_ERROR, "CGI read error: " + std::string(strerror(errno)));
-            conn->terminateCgi();
-            done = true;
-        }
-    }
-	
-	std::cout << "test" << std::endl;
-
-    // Check timeout if not done yet
-    if (!done) {
-        time_t now = std::time(NULL);
-        double elapsed = difftime(now, conn->getCgiStartTime());
-
-        if (elapsed > conn->getCgiTimeout()) {
-            g_logger.log(LOG_WARNING, "CGI timeout for fd: " + to_string(fd));
-            conn->terminateCgi();
-            done = true;
-        }
-    }
-
-    if (done) {
-        HttpResponse* response = dynamic_cast<HttpResponse*>(conn->getHttpTransaction());
-        if (response) {
-            // If terminated due to timeout, set error status
-            if (conn->getCgiPid() == -1 && conn->getCgiStartTime() != 0) {
-                time_t now = std::time(NULL);
-                double elapsed = difftime(now, conn->getCgiStartTime());
-                
-                if (elapsed > conn->getCgiTimeout()) {
-                    response->setStatus(504);
-                    response->setBody("");
-                } else {
-                    response->setBody(conn->getCgiResponse());
-                }
-            } else {
-                response->setBody(conn->getCgiResponse());
-            }
-        }
-        
-        // Update to writing state
-        updateEpoll(fd, EPOLLOUT | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_MOD);
-    }
-}
-
-void ServerManager::checkCgiTimeouts() {
-    time_t now = std::time(NULL);
-
-    for (std::map<int, Connection*>::iterator it = _connections.begin();
-         it != _connections.end(); ++it)
-    {
-        Connection* conn = it->second;
-        
-        if (conn->getState() == CGI_PROCESSING) {
-            double elapsed = difftime(now, conn->getCgiStartTime());
-
-            if (elapsed > conn->getCgiTimeout()) {
-                g_logger.log(LOG_WARNING, "CGI timeout detected for fd: " + to_string(it->first));
-                
-                // Terminate the CGI process
-                conn->terminateCgi();
-
-                // Set timeout response
-                HttpResponse* response = dynamic_cast<HttpResponse*>(conn->getHttpTransaction());
-                if (response) {
-                    response->setStatus(504);
-                }
-                
-                // Prepare to send the timeout response
-                updateEpoll(it->first, EPOLLOUT | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_MOD);
-            }
-        }
-    }
 }

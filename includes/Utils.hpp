@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 23:50:18 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/25 23:03:27 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/26 22:48:08 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,15 +32,16 @@ struct t_location
 {
 	std::string							_path;
 	std::string							_root;
-	std::map<std::string, std::string>	_loc_data;
+	int									_cgi_timeout;
 	int									_return_code;
 	std::string							_return_uri;
 	bool								_autoindex;
+	std::map<std::string, std::string>	_cgi;
 	std::vector<std::string>			_methods;
 	std::vector<std::string>			_try_files;
 	std::vector<std::string>			_indexes;
 
-	t_location() :_root(""), _return_code(0),_autoindex(false) {}
+	t_location() :_root(""), _cgi_timeout(5), _return_code(0), _autoindex(false) {}
 };
 
 struct t_server
@@ -51,12 +52,13 @@ struct t_server
 	std::map<std::string, std::string>	_data;
 	std::map<int, std::string>			_errors;
 	std::string							_root_error;
+	std::string							_root;
 	std::vector<t_location>				_locations;
 	std::vector<int>					_ports;
 	size_t								_timeout;
-	size_t								_max_body_size;
+	size_t								_maxBodySize;
 
-	t_server() : _timeout(30), _max_body_size(4096) {} // Default timeout 30s, max body size 4096 bytes
+	t_server() : _root(""), _timeout(30), _maxBodySize(4096) {} // Default timeout 30s, max body size 4096 bytes
 };
 
 struct t_buffer

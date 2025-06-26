@@ -10,7 +10,7 @@ BOLD		=	$(shell tput bold)
 RESET		=	$(shell tput -Txterm sgr0)
 
 CC			=	c++
-CFLAGS		=	-Wall -Werror -Wextra -std=c++98 -I includes -g -O3
+CFLAGS		=	-Wall -Werror -Wextra -std=c++98 -I includes -g
 
 include Files.mk
 

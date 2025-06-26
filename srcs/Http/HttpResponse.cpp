@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 02:49:23 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/26 21:06:56 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,8 @@ HttpResponse::HttpResponse(const t_server &server)
 	  _filePath(),
 	  _readFd(-1),
 	  _isHeadersSent(false),
-	  _ErrorStatus()
+	  _ErrorStatus(),
+	  _cgiHandler(NULL)
 {
 	_status = 200;
 	_protocol = "HTTP/1.1";
@@ -34,30 +35,15 @@ HttpResponse::HttpResponse(const t_server &server, HttpRequest &request)
 	  _filePath(),
 	  _readFd(-1),
 	  _isHeadersSent(false),
-	  _ErrorStatus()
-{
-	_method = request.getMethod();
-	_uri = request.getRequest();
-	_protocol = request.getProtocol();
-	_headers.clear(); // Clear headers from the request, we will build our own response headers
-}
-
-HttpResponse::HttpResponse(const t_server &server, HttpRequest &request, Connection* conn)
-    : HttpTransaction(request),
-      _server(server),
-	  _response(),
-	  _filePath(),
-	  _readFd(-1),
-	  _isHeadersSent(false),
 	  _ErrorStatus(),
-	  _connection(conn)
+	  _cgiHandler(NULL)
+	  
 {
 	_method = request.getMethod();
 	_uri = request.getRequest();
 	_protocol = request.getProtocol();
 	_headers.clear(); // Clear headers from the request, we will build our own response headers
 }
-
 
 HttpResponse::HttpResponse(const HttpResponse &other)
 	: HttpTransaction(other),
@@ -66,7 +52,8 @@ HttpResponse::HttpResponse(const HttpResponse &other)
 	  _filePath(other._filePath),
 	  _readFd(other._readFd),
 	  _isHeadersSent(other._isHeadersSent),
-	  _ErrorStatus(other._ErrorStatus)
+	  _ErrorStatus(other._ErrorStatus),
+	  _cgiHandler(other._cgiHandler)
 {}
 
 HttpResponse &HttpResponse::operator=(const HttpResponse &other) {
@@ -77,11 +64,21 @@ HttpResponse &HttpResponse::operator=(const HttpResponse &other) {
 		_readFd = other._readFd;
 		_response = other._response;
 		_ErrorStatus = other._ErrorStatus;
+		_filePath = other._filePath;
+		if (other._cgiHandler)
+			_cgiHandler = new CgiHandler(*other._cgiHandler);
+		else
+			_cgiHandler = NULL;
 	}
 	return *this;
 }
 
-HttpResponse::~HttpResponse() {}
+HttpResponse::~HttpResponse() {
+	if (_cgiHandler) {
+		delete _cgiHandler;
+		_cgiHandler = NULL;
+	}
+}
 
 
 
@@ -239,7 +236,6 @@ void	HttpResponse::setFileHeaders() {
 void HttpResponse::getFile()
 {
 	// 1) Find the best matching location for the URI
-	
 	t_location *loc = findBestLocation(&_server, _uri);
 	std::cout << loc->_path << std::endl;
 	if (!loc)
@@ -307,24 +303,6 @@ void HttpResponse::getFile()
 		setStatus(exists ? 403 : 404);
 		return;
 	}
-
-	t_location *cgi = GetCgi(&_server, _uri);
-
-	if (cgi)
-	{
-		std::string full2 = cgi->_loc_data["cgi_root"] + _uri;
-		if (access(full2.c_str(), F_OK) != 0)
-		{
-			setStatus(404);
-			return;
-		}
-		int timeout = atoi(cgi->_loc_data["fastcgi_read_timeout"].c_str());
-		if (!timeout)
-			timeout = 60;
-		if (!executeCGI(cgi->_loc_data["cgi_pass"], full2, timeout))
-			return;
-		return;
-	}
 	
 	// 6) if the URI does not end with a slash, we assume it's a file
 	if (!exists || !S_ISREG(st.st_mode))
@@ -357,45 +335,45 @@ t_buffer	HttpResponse::sendResponse()
 		}
 		_isHeadersSent = true;
 
-		size_t header_len = _response.size();
-		size_t max_body_size = _server._max_body_size;
-		size_t total_size = header_len;
+		size_t headerLen = _response.size();
+		size_t maxBodySize = _server._maxBodySize;
+		size_t total_size = headerLen;
 
-		bool has_body = !_body.empty();
-		bool has_file = _readFd >= 0;
+		bool hasBody = !_body.empty();
+		bool hasFile = _readFd >= 0;
 
-		size_t body_len = 0;
-		if (has_body)
-			body_len = std::min(_body.size(), max_body_size - header_len);
-		else if (has_file)
-			body_len = max_body_size - header_len;
+		size_t bodyLen = 0;
+		if (hasBody)
+			bodyLen = std::min(_body.size(), maxBodySize - headerLen);
+		else if (hasFile)
+			bodyLen = maxBodySize - headerLen;
 
-		total_size += body_len;
+		total_size += bodyLen;
 
-		char *response_copy = new char[total_size];
-		std::memcpy(response_copy, _response.c_str(), header_len);
+		char *responseCopy = new char[total_size];
+		std::memcpy(responseCopy, _response.c_str(), headerLen);
 
-		if (has_body)
+		if (hasBody)
 		{
-			std::memcpy(response_copy + header_len, _body.c_str(), body_len);
-			_body.erase(0, body_len);
-			if (_body.empty() && !has_file)
+			std::memcpy(responseCopy + headerLen, _body.c_str(), bodyLen);
+			_body.erase(0, bodyLen);
+			if (_body.empty() && !hasFile)
 				_isComplete = true;
-			buf.data = response_copy;
+			buf.data = responseCopy;
 			buf.size = total_size;
 			return buf;
 		}
-		else if (has_file)
+		else if (hasFile)
 		{
-			ssize_t n = read(_readFd, response_copy + header_len, body_len);
+			ssize_t n = read(_readFd, responseCopy + headerLen, bodyLen);
 			if (n < 0)
 			{
 				g_logger.log(LOG_ERROR, "Failed to read file: " + std::string(strerror(errno)));
-				delete[] response_copy;
+				delete[] responseCopy;
 				return buf;
 			}
-			body_len = n;
-			if (n == 0 || (size_t)n < max_body_size - header_len)
+			bodyLen = n;
+			if (n == 0 || (size_t)n < maxBodySize - headerLen)
 			{
 				close(_readFd);
 				_readFd = -1;
@@ -405,8 +383,8 @@ t_buffer	HttpResponse::sendResponse()
 		else
 			_isComplete = true;
 
-		buf.data = response_copy;
-		buf.size = header_len + body_len;
+		buf.data = responseCopy;
+		buf.size = headerLen + bodyLen;
 		return buf;
 	}
 	return getBody();
@@ -418,8 +396,8 @@ t_buffer	HttpResponse::getBody()
 
 	if (_readFd >= 0)
 	{
-		char *data = new char[_server._max_body_size];
-		ssize_t n = read(_readFd, data, _server._max_body_size);
+		char *data = new char[_server._maxBodySize];
+		ssize_t n = read(_readFd, data, _server._maxBodySize);
 		if (n < 0)
 		{
 			g_logger.log(LOG_ERROR, "Failed to read file: " + std::string(strerror(errno)));
@@ -434,7 +412,7 @@ t_buffer	HttpResponse::getBody()
 			delete[] data;
 			return buf;
 		}
-		if ((size_t)n < _server._max_body_size)
+		if ((size_t)n < _server._maxBodySize)
 		{
 			close(_readFd);
 			_readFd = -1;
@@ -445,7 +423,7 @@ t_buffer	HttpResponse::getBody()
 	}
 	else if (!_body.empty())
 	{
-		size_t len = std::min(_body.size(), static_cast<size_t>(_server._max_body_size));
+		size_t len = std::min(_body.size(), static_cast<size_t>(_server._maxBodySize));
 		char *data = new char[len];
 		std::memcpy(data, _body.c_str(), len);
 		_body.erase(0, len);
