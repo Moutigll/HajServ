@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Connection.hpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:48:52 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/25 04:36:25 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/26 03:55:22 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@ enum e_ConnectionState
 {
 	WRITING,
 	READING,
+	CGI_PROCESSING,
 	DONE
 };
 
@@ -65,6 +66,21 @@ class Connection
 		t_buffer	getReadBuffer(void);
 		void		successWrite(void);
 
+		void setCgiState(pid_t pid, int pipeFd, int timeout);
+		void appendCgiResponse(const char* data, size_t len);
+		void setCgiComplete();
+		bool isCgiComplete() const;
+		pid_t getCgiPid() const;
+		int getCgiFd() const;
+		void setCgiPid(pid_t);
+		time_t getCgiStartTime() const;
+		int getCgiTimeout() const;
+		std::string getCgiResponse() const;
+		HttpTransaction* getHttpTransaction() const { return _httpTransaction; }
+		void reapCgi();
+		void terminateCgi();
+
+
 	private:
 		int					_fd;
 		Port				*_port;
@@ -75,6 +91,11 @@ class Connection
 		std::time_t			_lastActivity;
 		HttpTransaction		*_httpTransaction;
 		HttpRequest			*_httpRequest;
+		pid_t       		_cgiPid;
+		int         		_cgiPipeFd;
+		std::string			_cgiResponse;
+		time_t				_cgiStartTime;
+		int         		_cgiTimeout;
 		
 		/**
 		 * @brief Switch the connection to an error state.

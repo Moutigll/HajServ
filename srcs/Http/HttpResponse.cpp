@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 01:42:24 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/26 02:49:23 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,6 +41,23 @@ HttpResponse::HttpResponse(const t_server &server, HttpRequest &request)
 	_protocol = request.getProtocol();
 	_headers.clear(); // Clear headers from the request, we will build our own response headers
 }
+
+HttpResponse::HttpResponse(const t_server &server, HttpRequest &request, Connection* conn)
+    : HttpTransaction(request),
+      _server(server),
+	  _response(),
+	  _filePath(),
+	  _readFd(-1),
+	  _isHeadersSent(false),
+	  _ErrorStatus(),
+	  _connection(conn)
+{
+	_method = request.getMethod();
+	_uri = request.getRequest();
+	_protocol = request.getProtocol();
+	_headers.clear(); // Clear headers from the request, we will build our own response headers
+}
+
 
 HttpResponse::HttpResponse(const HttpResponse &other)
 	: HttpTransaction(other),

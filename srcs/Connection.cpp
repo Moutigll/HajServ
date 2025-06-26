@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Connection.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:12 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/25 04:57:26 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/26 03:54:51 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,8 @@ Connection::Connection(void)
 
 Connection::Connection(int fd, Port *port)
 	: _fd(fd), _port(port), _state(READING), _server(NULL),
-	  _closed(fd < 0), _lastActivity(std::time(NULL)), _httpTransaction(NULL), _httpRequest(NULL)
+      _closed(fd < 0), _lastActivity(std::time(NULL)),
+      _httpTransaction(NULL), _httpRequest(NULL), _cgiPid(-1), _cgiPipeFd(-1), _cgiTimeout(0)
 {
 	if (port != NULL)
 	{
@@ -115,38 +116,47 @@ void	Connection::switchToErrorState(int errorCode)
 
 bool Connection::parseRequest(char *readBuffer)
 {
-	if (this->_httpRequest != NULL)
+    if (this->_httpRequest != NULL)
 	{
-		delete this->_httpRequest;
-		this->_httpRequest = NULL;
-	}
-	
-	if (this->_httpTransaction == NULL)
-		this->_httpTransaction = new HttpRequest();
-	if (this->_httpTransaction == NULL)
-		return (switchToErrorState(500), false); // Allocation failed, switch to error state 500 internal server error
+        delete this->_httpRequest;
+        this->_httpRequest = NULL;
+    }
+    
+    if (this->_httpTransaction == NULL)
+        this->_httpTransaction = new HttpRequest();
+    if (this->_httpTransaction == NULL)
+	{
+        switchToErrorState(500);
+        return false;
+    }
 
-	HttpRequest* request = dynamic_cast<HttpRequest*>(this->_httpTransaction);
-	request->setPort(this->_port);
-	
-	int status = request->parse(readBuffer);
-	if (status == -1)
+    HttpRequest* request = dynamic_cast<HttpRequest*>(this->_httpTransaction);
+    request->setPort(this->_port);
+    
+    int status = request->parse(readBuffer);
+    if (status == -1)
 	{
-		switchToErrorState(request->getStatus());
-		delete request;
-		return true;
-	}
-	else if (status == 0)
+        switchToErrorState(request->getStatus());
+        delete request;
+        this->_httpTransaction = NULL;
+        return true;
+    }
+    else if (status == 0)
 	{
-		this->_state = READING; // Need more data
-		return false;
-	}
-	this->_httpRequest = request;
-	this->_httpTransaction = NULL;
-	g_logger.log(LOG_DEBUG, "Request parsed successfully on fd: " + to_string(this->_fd));
-	_httpRequest->log();
-	this->_state = WRITING;
-	return true; // Request is complete, switch to writing state
+        this->_state = READING;
+        return false;
+    }
+
+    this->_httpRequest = request;
+    this->_httpTransaction = new HttpResponse(*this->_server, *this->_httpRequest, this);
+    if (this->_httpTransaction == NULL)
+	{
+        switchToErrorState(500);
+        return false;
+    }
+
+    this->_state = WRITING;
+    return true;
 }
 
 t_buffer	Connection::getReadBuffer(void)
@@ -190,4 +200,64 @@ void Connection::successWrite(void)
 		this->_writeBuffer.data = NULL;
 		this->_writeBuffer.size = 0;
 	}
+}
+
+
+void Connection::setCgiState(pid_t pid, int pipeFd, int timeout) {
+    _cgiPid = pid;
+    _cgiPipeFd = pipeFd;
+    _cgiTimeout = timeout;
+    _state = CGI_PROCESSING;
+    _cgiStartTime = std::time(NULL);
+    std::cout << "CGI start time set to: " << _cgiStartTime << std::endl;
+}
+
+void Connection::appendCgiResponse(const char* data, size_t len) {
+    _cgiResponse.append(data, len);
+}
+
+void Connection::setCgiComplete() {
+    if (_cgiPipeFd != -1) {
+        close(_cgiPipeFd);
+        _cgiPipeFd = -1;
+    }
+    _state = WRITING;
+    _cgiPid = -1;
+}
+
+pid_t Connection::getCgiPid() const { return _cgiPid; }
+
+void Connection::setCgiPid( pid_t pid ) { _cgiPid = pid; }
+int Connection::getCgiFd() const { return _cgiPipeFd; }
+time_t Connection::getCgiStartTime() const { return _cgiStartTime; }
+int Connection::getCgiTimeout() const { return _cgiTimeout; }
+std::string Connection::getCgiResponse() const { return _cgiResponse; }
+
+void Connection::terminateCgi() {
+    if (_cgiPid != -1) {
+        // Kill the CGI process and wait for it to ensure no zombies
+        kill(_cgiPid, SIGKILL);
+        int status;
+        waitpid(_cgiPid, &status, 0);
+        _cgiPid = -1;
+    }
+    if (_cgiPipeFd != -1) {
+        close(_cgiPipeFd);
+        _cgiPipeFd = -1;
+    }
+    _state = WRITING;
+}
+
+void Connection::reapCgi() {
+    if (_cgiPid != -1) {
+        // Wait for the CGI process to exit normally
+        int status;
+        waitpid(_cgiPid, &status, 0);
+        _cgiPid = -1;
+    }
+    if (_cgiPipeFd != -1) {
+        close(_cgiPipeFd);
+        _cgiPipeFd = -1;
+    }
+    _state = WRITING;
 }

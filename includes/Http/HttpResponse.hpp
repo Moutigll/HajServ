@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:26:55 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 02:00:21 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/26 03:26:29 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@
 #include "HttpRequest.hpp"
 #include "HttpError.hpp"
 #include "GetFiles.hpp"
-
+#include "../Connection.hpp"
 
 const std::string VERSION = "HajServ/2.1.0";
 
@@ -24,6 +24,7 @@ class HttpResponse : public HttpTransaction {
 	public:
 		HttpResponse(const t_server &server);
 		HttpResponse(const t_server &server, HttpRequest &request);
+		HttpResponse(const t_server &server, HttpRequest &request, Connection* conn);
 		HttpResponse(const HttpResponse &other);
 		HttpResponse &operator=(const HttpResponse &other);
 		virtual ~HttpResponse();
@@ -77,6 +78,7 @@ class HttpResponse : public HttpTransaction {
 		int			_readFd; // File descriptor for reading file content, if applicable
 		bool		_isHeadersSent; // Track if headers have been sent
 		HttpError	_ErrorStatus;
+		Connection* _connection;  // Add this
 
 
 		/**

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerManager.hpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 16:45:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/24 18:24:18 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/26 02:53:05 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -130,6 +130,9 @@ class ServerManager
 		void	handleEpollInEvent(int fd, std::map<int, Connection *>::iterator &it);
 
 		void	handleEpollOutEvent(int fd, std::map<int, Connection *>::iterator &it);
+
+		void	checkCgiTimeouts();
+		void	handleCgiRead(int fd, std::map<int, Connection*>::iterator &it);
 };
 
 #endif
