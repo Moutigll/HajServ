@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:26:55 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 00:50:16 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/26 02:00:21 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 #include "GetFiles.hpp"
 
 
-const std::string VERSION = "HajServer/2.1.0";
+const std::string VERSION = "HajServ/2.1.0";
 
 class HttpResponse : public HttpTransaction {
 	public:
