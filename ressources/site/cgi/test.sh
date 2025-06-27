@@ -1,10 +1,5 @@
 #!/bin/sh
 
-# Simple CGI script that changes background color on button click
-
-echo "Content-Type: text/html"
-echo ""
-
 # Read QUERY_STRING from environment (e.g. color=red)
 COLOR=$(echo "$QUERY_STRING" | sed -n 's/^.*color=\([^&]*\).*$/\1/p')
 

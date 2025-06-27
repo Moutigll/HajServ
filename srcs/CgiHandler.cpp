@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   CgiHandler.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 21:14:48 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/27 08:00:03 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/27 17:43:19 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,9 +97,6 @@ int	CgiHandler::execute()
 		if (!envp)
 			exit(1);
 		execve(_cgiPath.c_str(), argv, envp);
-		g_logger.log(LOG_ERROR, "Failed to execute CGI script: " + _cgiPath);
-		_freeEnvp(envp);
-		exit(1);
 	}
 
 	close(pipeIn[0]);
@@ -110,7 +107,8 @@ int	CgiHandler::execute()
 	close(pipeIn[1]);
 
 	_pipeFd = pipeOut[0];
- // Set pipe to non-blocking mode to avoid blocking on read if no data is available
+	// Set pipe to non-blocking mode to avoid blocking on read if no data is available
+	fcntl(_pipeFd, F_SETFL, O_NONBLOCK);
 
 	_startTime = time(NULL);
 	_timeout = false;
@@ -122,10 +120,23 @@ int	CgiHandler::execute()
 void	CgiHandler::readFromCgi()
 {
 	size_t bytesRead = 0;
+	int status;
+	pid_t result;
+	if (_pid > 0)
+	{
+		result = waitpid(_pid, &status, WNOHANG);
+		if (result == _pid)
+		{
+			_finished = true;
+			_pid = -1;
+			_statusCode = (status == 0 ? 200 : 500);
+		}
+	}
 	if (_pipeFd == -1 || _finished)
 		return;
 	char buffer[4096];
 	ssize_t bytes = read(_pipeFd, buffer, sizeof(buffer));
+	std::cout << "Read from CGI: " << bytes << " bytes" << std::endl;
 	if (bytes < 0)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -159,33 +170,55 @@ void	CgiHandler::readFromCgi()
 		close(_pipeFd);
 		_pipeFd = -1;
 
-		int status;
-		pid_t ret;
-
-		ret = waitpid(_pid, &status, WNOHANG);
-		if (ret == 0)
+		if (_pid > 0)
 		{
-			// Process still running
-			// We can return here, the process is still running and we will check again later
-			return;
-		}
-		else if (ret == _pid) // Processus finished
-		{
-			_finished = true;
-			_pid = -1;
-
-			if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
-				_statusCode = 200;
-			else
+			if (result == -1)
+			{
+				// Handle error
 				_statusCode = 500;
+				_finished = true;
+				perror("waitpid");
+			}
+			else if (result > 0)
+			{
+				if (WIFEXITED(status))
+				{
+					int exitStatus = WEXITSTATUS(status);
+					_statusCode = (exitStatus == 0 ? 200 : 500); // or use CGI output
+				}
+				else if (WIFSIGNALED(status))
+					_statusCode = 500;
+				_finished = true;
+			}
 		}
-		else // Error in waitpid
+	}
+	else if (bytes == 0) // No more data to read, process has finished
+	{
+		close(_pipeFd);
+		_pipeFd = -1;
+		if (_pid > 0)
 		{
-			_finished = true;
-			_pid = -1;
-			_statusCode = 500;
+			int status;
+			pid_t result = waitpid(_pid, &status, WNOHANG); // Non-blocking
+			if (result == -1)
+			{
+				g_logger.log(LOG_ERROR, "Error waiting for CGI process: " + std::string(strerror(errno)));
+				_statusCode = 500;
+				_finished = true;
+			}
+			else if (result > 0)
+			{
+				if (WIFEXITED(status))
+					_statusCode = WEXITSTATUS(status);
+				else if (WIFSIGNALED(status))
+					_statusCode = 500; // Internal Server Error
+				_finished = true;
+			}
+			else
+				return; // Process still running, wait for next read
 		}
-	} else if (bytes < 0) // Error in read
+	}
+	else if (bytes < 0) // Error in read
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
 			return; // No data available, return and check again later
@@ -203,12 +236,13 @@ bool	CgiHandler::checkTimeout(void)
 
 	if (_finished || _pid == -1)
 		return (false);
-	std::cout << "Script running for " << (time(NULL) - _startTime) << " seconds." << std::endl;
-	if (time(NULL) - _startTime >= _timeout)
+	// std::cout << "Script running for " << (time(NULL) - _startTime) << " seconds." << std::endl;
+	// std::cout << "Timeout set for " << _timeout << " seconds." << std::endl;
+	if (time(NULL) - _startTime >= 5)
 	{
 		kill(_pid, SIGKILL);
 
-		ret = waitpid(_pid, NULL, WNOHANG);
+		ret = waitpid(_pid, NULL, NULL);
 
 		if (ret == _pid || ret == -1)
 		{
@@ -220,7 +254,7 @@ bool	CgiHandler::checkTimeout(void)
 
 			_timeout = true;
 			_statusCode = 504;
-			//_finished = true;
+			_finished = true;
 
 			hasTimedOut = true;
 		}

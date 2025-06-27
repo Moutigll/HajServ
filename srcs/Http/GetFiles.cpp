@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   GetFiles.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 02:22:13 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 03:09:03 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/27 16:59:48 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,26 +69,25 @@ void HttpResponse::generateEnvMap(const std::string &filepath, std::map<std::str
 
 	envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
 	envMap["SERVER_PROTOCOL"] = _protocol;
-	envMap["REQUEST_METHOD"] = _uri;
+	envMap["REQUEST_METHOD"] = _method;
 	envMap["SCRIPT_FILENAME"] = filepath;
 	envMap["SCRIPT_NAME"] = _filePath;
 	envMap["SERVER_SOFTWARE"] = VERSION;
 
-	// Query string
-	size_t pos = _uri.find('?');
-	if (pos != std::string::npos)
-		envMap["QUERY_STRING"] = _uri.substr(pos + 1);
+	if (!_query.empty())
+		envMap["QUERY_STRING"] = _query;
 	else
 		envMap["QUERY_STRING"] = "";
 
 	// Content
-	if (_method == "POST")
-	{
-		envMap["CONTENT_LENGTH"] = to_string(0);
-		envMap["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
-	}
-	else
-		envMap["CONTENT_LENGTH"] = "0";
+	// if (_method == "POST")
+	// {
+	// 	envMap["CONTENT_LENGTH"] = "0";
+	// 	envMap["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
+	// }
+	// else
+	envMap["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
+	envMap["CONTENT_LENGTH"] = "0";
 
 	// Additional headers
 	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it) {
@@ -97,12 +96,6 @@ void HttpResponse::generateEnvMap(const std::string &filepath, std::map<std::str
 			if (key[i] == '-') key[i] = '_';
 
 		envMap["HTTP_" + key] = it->second;
-	}
-
-	// Convert map to envVec
-	envMap.clear();
-	for (std::map<std::string, std::string>::const_iterator it = envMap.begin(); it != envMap.end(); ++it) {
-		envVec.push_back(it->first + "=" + it->second);
 	}
 }
 

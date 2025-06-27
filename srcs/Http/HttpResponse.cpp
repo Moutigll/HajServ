@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/27 05:00:11 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/27 17:20:01 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,6 +42,7 @@ HttpResponse::HttpResponse(const t_server &server, HttpRequest &request)
 {
 	this->_method = request.getMethod();
 	this->_uri = request.getRequest();
+	this->_query = request.getQuery();
 	this->_protocol = request.getProtocol();
 	this->_headers.clear(); // Clear headers from the request, we will build our own response headers
 }
@@ -249,7 +250,7 @@ std::string HttpResponse::isCgiFile(const t_location *loc, const std::string &fi
 {
 	struct stat st;
 
-	// Check file exists and is regular
+	// Check file exists and is regular'
 	if (stat(filepath.c_str(), &st) != 0 || !S_ISREG(st.st_mode))
 	{
 		_status = 404; // File not found
@@ -361,6 +362,7 @@ void HttpResponse::getFile()
 		// File is a CGI script: create the CGI handler
 		std::map<std::string, std::string> envMap;
 		generateEnvMap(full, envMap);
+		std::cout << "CGI script detected: " << full << std::endl;
 		_cgiHandler = new CgiHandler(cgiBin, full, _body, envMap, loc->_cgi_timeout);
 		_cgiHandler->execute();
 		_isCgiComplete = false;

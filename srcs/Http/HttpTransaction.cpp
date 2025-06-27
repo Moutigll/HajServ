@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpTransaction.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:16:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/25 21:06:37 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/27 16:58:12 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@ HttpTransaction::HttpTransaction()
 HttpTransaction::HttpTransaction(const HttpTransaction &other)
 	: _method(other._method),
 	  _uri(other._uri),
+	  _query(other._query),
 	  _connectionKeepAlive(other._connectionKeepAlive),
 	  _protocol(other._protocol),
 	  _headers(other._headers),
@@ -29,6 +30,7 @@ HttpTransaction::HttpTransaction(const HttpTransaction &other)
 HttpTransaction &HttpTransaction::operator=(const HttpTransaction &other) {
 	if (this != &other) {
 		_uri = other._uri;
+		_query = other._query;
 		_method = other._method;
 		_connectionKeepAlive = other._connectionKeepAlive;
 		_protocol = other._protocol;
@@ -74,6 +76,10 @@ std::string HttpTransaction::getMethod() const {
 
 std::string HttpTransaction::getRequest() const {
 	return _uri;
+}
+
+std::string HttpTransaction::getQuery() const {
+	return _query;
 }
 
 std::string HttpTransaction::getProtocol() const {

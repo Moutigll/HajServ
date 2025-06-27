@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/20 21:05:28 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/25 17:36:34 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/27 16:59:37 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -205,6 +205,12 @@ bool	HttpRequest::parseRequestLine(const std::string &line)
 	}
 
 	_method = method;
+	size_t pos = request.find('?');
+	if (pos != std::string::npos)
+	{
+		_query = request.substr(pos + 1);
+		request = request.substr(0, pos);
+	}
 	_uri = percentDecode(request);
 	if (_uri.empty() || _uri[0] != '/' || _uri.find("..") != std::string::npos) // URI must start with '/' and not contain '..'
 	{
