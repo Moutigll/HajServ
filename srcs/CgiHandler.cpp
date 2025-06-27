@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 21:14:48 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 21:29:07 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/27 05:04:02 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,6 +67,7 @@ CgiHandler::~CgiHandler()
 
 int	CgiHandler::execute()
 {
+	std::cout << "Executing CGI script: " << _cgiPath << std::endl;
 	int pipeIn[2]; // Send data to CGI
 	int pipeOut[2]; // Receive data from CGI
 
@@ -104,8 +105,8 @@ int	CgiHandler::execute()
 	close(pipeIn[0]);
 	close(pipeOut[1]);
 
-	// if (!_requestBody.empty()) // Write request body to CGI
-	// 	write(pipeIn[1], _requestBody.c_str(), _requestBody.size());
+	if (!_requestBody.empty()) // Write request body to CGI
+	 	write(pipeIn[1], _requestBody.c_str(), _requestBody.size());
 	close(pipeIn[1]);
 
 	_pipeFd = pipeOut[0];
@@ -125,6 +126,7 @@ void	CgiHandler::readFromCgi()
 		return;
 	char buffer[4096];
 	ssize_t bytes = read(_pipeFd, buffer, sizeof(buffer));
+	std::cout << "Bytes read from CGI pipe: " << bytes << std::endl;
 	if (bytes < 0)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -132,7 +134,7 @@ void	CgiHandler::readFromCgi()
 		else
 		{
 			g_logger.log(LOG_ERROR, "Error reading from CGI pipe: " + std::string(strerror(errno)));
-			_finished = true;
+			//_finished = true;
 			_pid = -1;
 			_statusCode = 500;
 			return;
@@ -140,15 +142,16 @@ void	CgiHandler::readFromCgi()
 	}
 	while (bytes > 0)
 	{
+		std::cout << "Read " << bytes << " bytes from CGI pipe." << std::endl;
+		std::cout << "Buffer content: " << std::string(buffer, bytes) << std::endl;
 		_output.append(buffer, bytes); // Empty data in the pipe
 		bytes = read(_pipeFd, buffer, sizeof(buffer));
 	}
-	std::cout << "Read from CGI: " << bytes << " bytes" << std::endl;
-	std::cout << "Output: " << _output << std::endl;
+	std::cout << "Read " << bytes << " bytes from CGI pipe." << std::endl;
 	if (bytes == 0) // The process has finished writing
 	{
-		close(_pipeFd);
-		_pipeFd = -1;
+		//close(_pipeFd);
+		//_pipeFd = -1;
 
 		int status;
 		pid_t ret;
@@ -162,7 +165,7 @@ void	CgiHandler::readFromCgi()
 		}
 		else if (ret == _pid) // Processus finished
 		{
-			_finished = true;
+			//_finished = true;
 			_pid = -1;
 
 			if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
@@ -172,10 +175,18 @@ void	CgiHandler::readFromCgi()
 		}
 		else // Error in waitpid
 		{
-			_finished = true;
+			//_finished = true;
 			_pid = -1;
 			_statusCode = 500;
 		}
+	} else if (bytes < 0) // Error in read
+	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return; // No data available, return and check again later
+		g_logger.log(LOG_ERROR, "Error reading from CGI pipe: " + std::string(strerror(errno)));
+		//_finished = true;
+		_pid = -1;
+		_statusCode = 500;
 	}
 }
 
@@ -186,7 +197,7 @@ bool	CgiHandler::checkTimeout(void)
 
 	if (_finished || _pid == -1)
 		return (false);
-
+	std::cout << "Script running for " << (time(NULL) - _startTime) << " seconds." << std::endl;
 	if (time(NULL) - _startTime >= _timeout)
 	{
 		kill(_pid, SIGKILL);
@@ -203,7 +214,7 @@ bool	CgiHandler::checkTimeout(void)
 
 			_timeout = true;
 			_statusCode = 504;
-			_finished = true;
+			//_finished = true;
 
 			hasTimedOut = true;
 		}

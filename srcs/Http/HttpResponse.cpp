@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 21:06:56 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/27 05:00:11 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,11 +88,16 @@ HttpResponse::~HttpResponse() {
 ---------------------------*/
 
 void	HttpResponse::construct()
-{
-	_response.clear();
-	
+{	
 	if (!_body.empty())
+	{	
+		if (_status >= 400)
+		{
+			_ErrorStatus.setServer(_server);
+			buildErrorPage();
+		}
 		_response += "Content-Length: " + to_string(_body.size()) + "\r\n";
+	}
 	else
 	{
 		setFileHeaders();
@@ -381,14 +386,20 @@ bool	HttpResponse::handleCgi()
 		return false;
 
 	_cgiHandler->readFromCgi();
-
+	_cgiHandler->checkTimeout();
 	if (_cgiHandler->isFinished())
 	{
+		std::cout << "CGI handler finished." << std::endl;
 		_isCgiComplete = true;
 		output = _cgiHandler->getOutput();
 		setStatus(_cgiHandler->getStatusCode());
 		if (!output.empty())
 			_body = output;
+		else
+		{
+			setStatus(500);
+			_body = "<html><body><h1>Internal Server Error</h1></body></html>";
+		}
 		return true;
 	}
 	return false;
@@ -397,25 +408,23 @@ bool	HttpResponse::handleCgi()
 
 t_buffer	HttpResponse::sendResponse()
 {
-	t_buffer	buf = { NULL, 0 };
+	t_buffer	buf = { NULL, 4242 };
 
 	_isComplete = false;
 	if (!_isHeadersSent)
 	{
+		
 		if (!_isCgiComplete)
 			handleCgi();
 		if (!_isCgiComplete)
-		{
-			buf.size = 4242;
-			return buf; // Indicate that the response is not ready yet
-		};
+			return buf;
 		if (_response.empty())
-			construct();
-		if (!_isCgiComplete)
 		{
-			buf.size = 4242;
-			return buf; // Indicate that the response is not ready yet
-		};
+			std::cout << "Constructing response headers..." << std::endl;
+			construct();
+		}
+		if (!_isCgiComplete)
+			return buf;
 		if (_response.empty())
 		{
 			g_logger.log(LOG_ERROR, "Failed to construct response: empty response");
