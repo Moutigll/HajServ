@@ -78,6 +78,7 @@ class HttpResponse : public HttpTransaction {
 		bool		_isHeadersSent; // Track if headers have been sent
 		HttpError	_ErrorStatus;
 		CgiHandler	*_cgiHandler; // Handler for CGI execution
+		bool		_isCgiComplete; // Track if CGI execution is complete
 
 
 		/**
@@ -113,12 +114,18 @@ class HttpResponse : public HttpTransaction {
 		 */
 		void		getFile();
 
+		std::string isCgiFile(const t_location *loc, const std::string &filepath);
+
+		bool	handleCgi();
+
 		/**
 		 * @brief Returns a buffer with the next chunk of the response body or file content.
 		 * 
 		 * @return t_buffer 
 		 */
 		t_buffer	getBody();
+
+		void generateEnvMap(const std::string &filepath, std::map<std::string, std::string> &envMap);
 };
 
 #endif

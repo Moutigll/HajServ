@@ -36,7 +36,7 @@ struct t_location
 	int									_return_code;
 	std::string							_return_uri;
 	bool								_autoindex;
-	std::map<std::string, std::string>	_cgi;
+	std::map<std::string, std::string>	_cgi; // Extension, CGI path
 	std::vector<std::string>			_methods;
 	std::vector<std::string>			_try_files;
 	std::vector<std::string>			_indexes;

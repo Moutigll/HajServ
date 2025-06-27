@@ -33,7 +33,7 @@ t_location	*findBestLocation(t_server *server, const std::string &uri);
  * @param allowed_methods a vector of allowed methods for the location
  * @return
  */
-bool		checkMethod(const std::string &method, const std::vector<std::string> &allowed_methods);
+bool		checkMethod(const std::string &method, const std::vector<std::string> &allowedMNethods);
 
 /**
  * @brief Generates an autoindex HTML page for a directory.
@@ -44,9 +44,7 @@ bool		checkMethod(const std::string &method, const std::vector<std::string> &all
  * @return std::string an HTML string representing the autoindex page
  * 
  */
-std::string	generateAutoindexPage(const std::string &uri, const std::string &directory_path);
-
-t_location	*GetCgi(t_server *server, const std::string &uri);
+std::string	generateAutoindexPage(const std::string &uri, const std::string &directoryPath);
 
 static const std::string svgIconFolder =
 	"<svg class=\"icon\" viewBox=\"0 0 24 24\" width=\"24\" height=\"24\">\n"
@@ -63,6 +61,55 @@ static const std::string svgIconFile =
 	"<path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z\"/>"
 	"<polyline points=\"14 2 14 8 20 8\" fill=\"#2980b9\"/>"
 	"</svg>";
+
+static const std::string	indexPageBase =
+"<style>\n"
+"body {\n"
+"	font-family: Arial, sans-serif;\n"
+"	background: #173661;\n"
+"	padding: 40px;\n"
+"	color: #f0f0f0;\n"
+"}\n"
+"h1 {\n"
+"	font-size: 32px;\n"
+"	margin-bottom: 30px;\n"
+"}\n"
+".entry {\n"
+"	display: flex;\n"
+"	align-items: center;\n"
+"	background: #1c3f72;\n"
+"	border: 1px solid #2e528c;\n"
+"	padding: 12px 16px;\n"
+"	margin-bottom: 12px;\n"
+"	border-radius: 8px;\n"
+"	width: 35%;\n"
+"	transition: all 0.2s ease-in-out;\n"
+"}\n"
+".entry:hover {\n"
+"	background: #224984;\n"
+"	box-shadow: 0 2px 8px rgba(0,0,0,0.3);\n"
+"}\n"
+".entry svg.icon, .entry img.thumbnail {\n"
+"	margin-right: 14px;\n"
+"}\n"
+"img.thumbnail {\n"
+"	max-height: 50px;\n"
+"	max-width: 50px;\n"
+"	border: 1px solid #3a5b94;\n"
+"	border-radius: 4px;\n"
+"}\n"
+"a {\n"
+"	color: #f0f0f0;\n"
+"	text-decoration: none;\n"
+"	font-size: 16px;\n"
+"}\n"
+"a:hover {\n"
+"	text-decoration: underline;\n"
+"}\n"
+"</style>\n"
+"</head><body>"
+"<div style=\"display: flex; flex-direction: row\">"
+"<svg class=\"blahaj\" width=\"128\" height=\"128\" viewBox=\"0 0 570 570\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n";
 
 /*-------------------
 		Blåhaj

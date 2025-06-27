@@ -11,7 +11,6 @@
 /* ************************************************************************** */
 
 #include "../includes/ServerManager.hpp"
-#include "../includes/Http/HttpResponse.hpp"
 
 volatile sig_atomic_t keepRunning = 1;
 
@@ -318,6 +317,8 @@ void	ServerManager::handleEpollOutEvent(int fd, std::map<int, Connection *>::ite
 	}
 	
 	t_buffer write_buffer = it->second->getReadBuffer();
+	if (!write_buffer.data && write_buffer.size == 4242) // 4242 is a magic number indicating no data to write
+		return;
 	if (!write_buffer.data || write_buffer.size == 0)
 	{
 		g_logger.log(LOG_ERROR, "No write buffer available for fd " + to_string(fd));

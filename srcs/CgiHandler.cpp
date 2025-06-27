@@ -75,15 +75,18 @@ int	CgiHandler::execute()
 
 	_pid = fork();
 	if (_pid < 0)
+	{
+		close(pipeIn[0]); close(pipeIn[1]);
+		close(pipeOut[0]); close(pipeOut[1]);
 		return (500);
-
-	if (_pid == 0) // Child process
+	}
+	if (!_pid) // Child process
 	{
 		dup2(pipeIn[0], STDIN_FILENO);
 		dup2(pipeOut[1], STDOUT_FILENO);
 		close(pipeIn[1]);
 		close(pipeOut[0]);
-
+		
 		char *argv[] = {
 			const_cast<char *>(_cgiPath.c_str()),
 			const_cast<char *>(_scriptPath.c_str()),
@@ -92,8 +95,8 @@ int	CgiHandler::execute()
 		char **envp = _buildEnvp();
 		if (!envp)
 			exit(1);
-
 		execve(_cgiPath.c_str(), argv, envp);
+		g_logger.log(LOG_ERROR, "Failed to execute CGI script: " + _cgiPath);
 		_freeEnvp(envp);
 		exit(1);
 	}
@@ -101,8 +104,8 @@ int	CgiHandler::execute()
 	close(pipeIn[0]);
 	close(pipeOut[1]);
 
-	if (!_requestBody.empty()) // Write request body to CGI
-		write(pipeIn[1], _requestBody.c_str(), _requestBody.size());
+	// if (!_requestBody.empty()) // Write request body to CGI
+	// 	write(pipeIn[1], _requestBody.c_str(), _requestBody.size());
 	close(pipeIn[1]);
 
 	_pipeFd = pipeOut[0];
@@ -120,14 +123,28 @@ void	CgiHandler::readFromCgi()
 {
 	if (_pipeFd == -1 || _finished)
 		return;
-
 	char buffer[4096];
 	ssize_t bytes = read(_pipeFd, buffer, sizeof(buffer));
+	if (bytes < 0)
+	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return; // No data available, return and check again later
+		else
+		{
+			g_logger.log(LOG_ERROR, "Error reading from CGI pipe: " + std::string(strerror(errno)));
+			_finished = true;
+			_pid = -1;
+			_statusCode = 500;
+			return;
+		}
+	}
 	while (bytes > 0)
 	{
 		_output.append(buffer, bytes); // Empty data in the pipe
 		bytes = read(_pipeFd, buffer, sizeof(buffer));
 	}
+	std::cout << "Read from CGI: " << bytes << " bytes" << std::endl;
+	std::cout << "Output: " << _output << std::endl;
 	if (bytes == 0) // The process has finished writing
 	{
 		close(_pipeFd);
@@ -244,3 +261,10 @@ const std::string&	CgiHandler::getOutput() const {
 bool	CgiHandler::hasTimedOut() const {
 	return _timeout;
 }
+
+int	CgiHandler::getStatusCode() {
+	if (_finished)
+		return _statusCode;
+	return 0;
+}
+

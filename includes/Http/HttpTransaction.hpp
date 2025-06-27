@@ -39,6 +39,8 @@ class HttpTransaction {
 		std::string	getMethod() const;
 		std::string	getRequest() const;
 		std::string	getProtocol() const;
+		std::string getTBody() const;
+		std::map<std::string, std::string> getHeaders() const;
 		bool		isConnectionKeepAlive() const;
 
 	protected:

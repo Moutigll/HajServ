@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "../../includes/Http/GetFiles.hpp"
+#include "../../includes/Http/HttpResponse.hpp"
 
 t_location	*findBestLocation(t_server *server, const std::string &uri)
 {
@@ -37,17 +38,17 @@ t_location	*findBestLocation(t_server *server, const std::string &uri)
 	return (best_location);
 }
 
-bool	checkMethod(const std::string &method, const std::vector<std::string> &allowed_methods)
+bool	checkMethod(const std::string &method, const std::vector<std::string> &allowedMethods)
 {
-	for (size_t i = 0; i < allowed_methods.size(); ++i)
+	for (size_t i = 0; i < allowedMethods.size(); ++i)
 	{
-		if (method == allowed_methods[i])
+		if (method == allowedMethods[i])
 			return (true);
 	}
 	return (false);
 }
 
-static bool	is_image(const std::string &filename)
+static bool	isImage(const std::string &filename)
 {
 	const std::string	exts[] = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".svg"};
 	size_t				pos = filename.rfind('.');
@@ -60,6 +61,49 @@ static bool	is_image(const std::string &filename)
 			return true;
 	}
 	return false;
+}
+
+void HttpResponse::generateEnvMap(const std::string &filepath, std::map<std::string, std::string> &envMap)
+{
+	std::vector<std::string> envVec;
+
+	envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
+	envMap["SERVER_PROTOCOL"] = _protocol;
+	envMap["REQUEST_METHOD"] = _uri;
+	envMap["SCRIPT_FILENAME"] = filepath;
+	envMap["SCRIPT_NAME"] = _filePath;
+	envMap["SERVER_SOFTWARE"] = VERSION;
+
+	// Query string
+	size_t pos = _uri.find('?');
+	if (pos != std::string::npos)
+		envMap["QUERY_STRING"] = _uri.substr(pos + 1);
+	else
+		envMap["QUERY_STRING"] = "";
+
+	// Content
+	if (_method == "POST")
+	{
+		envMap["CONTENT_LENGTH"] = to_string(0);
+		envMap["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
+	}
+	else
+		envMap["CONTENT_LENGTH"] = "0";
+
+	// Additional headers
+	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it) {
+		std::string key = it->first;
+		for (size_t i = 0; i < key.length(); ++i)
+			if (key[i] == '-') key[i] = '_';
+
+		envMap["HTTP_" + key] = it->second;
+	}
+
+	// Convert map to envVec
+	envMap.clear();
+	for (std::map<std::string, std::string>::const_iterator it = envMap.begin(); it != envMap.end(); ++it) {
+		envVec.push_back(it->first + "=" + it->second);
+	}
 }
 
 std::string	generateAutoindexPage(const std::string &uri, const std::string &directory_path)
@@ -77,59 +121,14 @@ std::string	generateAutoindexPage(const std::string &uri, const std::string &dir
 		return "<html><body><h1>500 Internal Server Error</h1></body></html>";
 
 	html = "<html><head><title>Index of " + uri + "</title>\n";
-	html += "<style>\n";
-	html += "body {\n"
-			"	font-family: Arial, sans-serif;\n"
-			"	background: #ecf0f1;\n"
-			"	padding: 40px;\n"
-			"	color: #2c3e50;\n"
-			"}\n"
-			"h1 {\n"
-			"	font-size: 32px;\n"
-			"	margin-bottom: 30px;\n"
-			"}\n"
-			".entry {\n"
-			"	display: flex;\n"
-			"	align-items: center;\n"
-			"	background: #ffffff;\n"
-			"	border: 1px solid #ddd;\n"
-			"	padding: 12px 16px;\n"
-			"	margin-bottom: 12px;\n"
-			"	border-radius: 8px;\n"
-			"	width: 35%;\n"
-			"	transition: all 0.2s ease-in-out;\n"
-			"}\n"
-			".entry:hover {\n"
-			"	background: #f4faff;\n"
-			"	box-shadow: 0 2px 8px rgba(0,0,0,0.1);\n"
-			"}\n"
-			".entry svg.icon, .entry img.thumbnail {\n"
-			"	margin-right: 14px;\n"
-			"}\n"
-			"img.thumbnail {\n"
-			"	max-height: 50px;\n"
-			"	max-width: 50px;\n"
-			"	border: 1px solid #ccc;\n"
-			"	border-radius: 4px;\n"
-			"}\n"
-			"a {\n"
-			"	color: #2980b9;\n"
-			"	text-decoration: none;\n"
-			"	font-size: 16px;\n"
-			"}\n"
-			"a:hover {\n"
-			"	text-decoration: underline;\n"
-			"}\n";
-	html += "</style>\n";
-	html += "</head><body>";
-	html += "<div style=\"display: flex; flex-direction: row\"><svg class=\"blahaj\" width=\"128\" height=\"128\" viewBox=\"0 0 570 570\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n";
+	html += indexPageBase;
+
 	html += std::string("\t\t") + svgBlahajBase + svgBlahajEye + svgBlahajTummy + svgBlahajShadow + svgBlahajLinearGradients + svgBlahajSmug + svgBlahajTongue + "</svg>\n";
 	html += "<h1>Index of " + uri + "</h1></div>";
 
 	while ((entry = readdir(dir)))
 	{
 		name = std::string(entry->d_name);
-
 		if (name == "." || name[0] == '.')
 			continue;
 
@@ -158,7 +157,7 @@ std::string	generateAutoindexPage(const std::string &uri, const std::string &dir
 			link += name;
 
 			html += "<div class=\"entry\">";
-			if (is_image(name))
+			if (isImage(name))
 			{
 				html += "<a href=\"" + link + "\">";
 				html += "<img class=\"thumbnail\" src=\"" + link + "\" alt=\"" + name + "\" />";
@@ -173,7 +172,6 @@ std::string	generateAutoindexPage(const std::string &uri, const std::string &dir
 		}
 	}
 	closedir(dir);
-
 	html += "</body></html>";
 	return html;
 }

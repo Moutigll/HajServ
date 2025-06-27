@@ -83,3 +83,11 @@ std::string HttpTransaction::getProtocol() const {
 bool HttpTransaction::isConnectionKeepAlive() const {
 	return _connectionKeepAlive;
 }
+
+std::string HttpTransaction::getTBody() const {
+	return _body;
+}
+
+std::map<std::string, std::string> HttpTransaction::getHeaders() const {
+	return _headers;
+}

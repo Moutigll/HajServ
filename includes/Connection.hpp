@@ -20,7 +20,6 @@ enum e_ConnectionState
 {
 	WRITING,
 	READING,
-	CGI_PROCESSING,
 	DONE
 };
 
@@ -65,22 +64,6 @@ class Connection
 
 		t_buffer	getReadBuffer(void);
 		void		successWrite(void);
-
-		void setCgiState(pid_t pid, int pipeFd, int timeout);
-		void appendCgiResponse(const char* data, size_t len);
-		void setCgiComplete();
-		bool isCgiComplete() const;
-		pid_t getCgiPid() const;
-		int getCgiFd() const;
-		void setCgiPid(pid_t);
-		time_t getCgiStartTime() const;
-		int getCgiTimeout() const;
-		std::string getCgiResponse() const;
-		HttpTransaction* getHttpTransaction() const { return _httpTransaction; }
-		void reapCgi();
-		void terminateCgi();
-
-
 	private:
 		int					_fd;
 		Port				*_port;

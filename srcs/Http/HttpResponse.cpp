@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "../../includes/Http/HttpResponse.hpp"
+#include <iostream>
 #include <ostream>
 
 HttpResponse::HttpResponse(const t_server &server)
@@ -21,7 +22,7 @@ HttpResponse::HttpResponse(const t_server &server)
 	  _readFd(-1),
 	  _isHeadersSent(false),
 	  _ErrorStatus(),
-	  _cgiHandler(NULL)
+	  _isCgiComplete(true)
 {
 	_status = 200;
 	_protocol = "HTTP/1.1";
@@ -29,20 +30,20 @@ HttpResponse::HttpResponse(const t_server &server)
 }
 
 HttpResponse::HttpResponse(const t_server &server, HttpRequest &request)
-	: HttpTransaction(request),
+	: 
 	  _server(server),
 	  _response(),
 	  _filePath(),
 	  _readFd(-1),
 	  _isHeadersSent(false),
 	  _ErrorStatus(),
-	  _cgiHandler(NULL)
-	  
+	  _cgiHandler(NULL),
+	  _isCgiComplete(true)
 {
-	_method = request.getMethod();
-	_uri = request.getRequest();
-	_protocol = request.getProtocol();
-	_headers.clear(); // Clear headers from the request, we will build our own response headers
+	this->_method = request.getMethod();
+	this->_uri = request.getRequest();
+	this->_protocol = request.getProtocol();
+	this->_headers.clear(); // Clear headers from the request, we will build our own response headers
 }
 
 HttpResponse::HttpResponse(const HttpResponse &other)
@@ -95,6 +96,8 @@ void	HttpResponse::construct()
 	else
 	{
 		setFileHeaders();
+		if (!_isCgiComplete)
+			return;
 		if (!_body.empty()) // If it's a directory listing
 			_response += "Content-Length: " + to_string(_body.size()) + "\r\n" \
 			+ "Content-Type: text/html\r\n";
@@ -195,7 +198,11 @@ void	HttpResponse::setFileHeaders() {
 	_ErrorStatus.setServer(_server);
 	if (_filePath.empty())
 		getFile();
-	std::cout << "status: " << _status << std::endl;
+	if (!_isCgiComplete)
+	{
+		_response.clear();
+		return;
+	}
 	if (_status >= 400) {
 		if (_ErrorStatus.getCode() == 200)
 			_ErrorStatus.setCode(_status);
@@ -233,11 +240,42 @@ void	HttpResponse::setFileHeaders() {
 		Get File
 ---------------------*/
 
+std::string HttpResponse::isCgiFile(const t_location *loc, const std::string &filepath)
+{
+	struct stat st;
+
+	// Check file exists and is regular
+	if (stat(filepath.c_str(), &st) != 0 || !S_ISREG(st.st_mode))
+	{
+		_status = 404; // File not found
+		return "";
+	}
+
+	// Iterate over CGI extensions configured in location
+	for (std::map<std::string, std::string>::const_iterator it = loc->_cgi.begin(); it != loc->_cgi.end(); ++it)
+	{
+		const std::string &ext = it->first;
+		const std::string cgiBin = it->second;
+
+		if (filepath.size() >= ext.size() &&
+			filepath.compare(filepath.size() - ext.size(), ext.size(), ext) == 0)
+		{
+			if (access(filepath.c_str(), X_OK) == 0)
+				return cgiBin;
+			else
+			{
+				_status = 403;
+				return "";
+			}
+		}
+	}
+	return "";
+}
+
 void HttpResponse::getFile()
 {
 	// 1) Find the best matching location for the URI
 	t_location *loc = findBestLocation(&_server, _uri);
-	std::cout << loc->_path << std::endl;
 	if (!loc)
 	{
 		setStatus(404);
@@ -304,20 +342,58 @@ void HttpResponse::getFile()
 		return;
 	}
 	
-	// 6) if the URI does not end with a slash, we assume it's a file
+	// 6) if the URI does not end with slash, we assume it's a file
 	if (!exists || !S_ISREG(st.st_mode))
 	{
 		setStatus(404);
 		return;
 	}
 
+	// Check if the file should be executed as CGI
+	std::string cgiBin = isCgiFile(loc, full);
+	if (!cgiBin.empty())
+	{
+		// File is a CGI script: create the CGI handler
+		std::map<std::string, std::string> envMap;
+		generateEnvMap(full, envMap);
+		_cgiHandler = new CgiHandler(cgiBin, full, _body, envMap, loc->_cgi_timeout);
+		_cgiHandler->execute();
+		_isCgiComplete = false;
+		setStatus(200);
+		return;
+	}
+
+	// Otherwise serve the file normally
 	_filePath = full;
 	setStatus(200);
+
 }
 
 /*-------------------------
 	Buffer Sending
 ---------------------------*/
+
+bool	HttpResponse::handleCgi()
+{
+	std::string	output;
+	
+	if (!_cgiHandler)
+		return false;
+
+	_cgiHandler->readFromCgi();
+
+	if (_cgiHandler->isFinished())
+	{
+		_isCgiComplete = true;
+		output = _cgiHandler->getOutput();
+		setStatus(_cgiHandler->getStatusCode());
+		if (!output.empty())
+			_body = output;
+		return true;
+	}
+	return false;
+}
+
 
 t_buffer	HttpResponse::sendResponse()
 {
@@ -326,8 +402,20 @@ t_buffer	HttpResponse::sendResponse()
 	_isComplete = false;
 	if (!_isHeadersSent)
 	{
+		if (!_isCgiComplete)
+			handleCgi();
+		if (!_isCgiComplete)
+		{
+			buf.size = 4242;
+			return buf; // Indicate that the response is not ready yet
+		};
 		if (_response.empty())
 			construct();
+		if (!_isCgiComplete)
+		{
+			buf.size = 4242;
+			return buf; // Indicate that the response is not ready yet
+		};
 		if (_response.empty())
 		{
 			g_logger.log(LOG_ERROR, "Failed to construct response: empty response");

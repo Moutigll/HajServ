@@ -24,6 +24,7 @@
 # include <signal.h>
 # include <ctime>
 # include <iostream>
+#include "Logger.hpp"
 
 /**
  * @class CgiHandler
@@ -76,6 +77,7 @@ class CgiHandler {
 		bool							hasTimedOut() const;
 		const std::string&				getOutput() const;
 		bool							isFinished() const;
+		int								getStatusCode();
 
 
 	private:
