@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 21:14:48 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/27 17:43:19 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/27 18:08:31 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,10 +67,8 @@ CgiHandler::~CgiHandler()
 
 int	CgiHandler::execute()
 {
-	std::cout << "Executing CGI script: " << _cgiPath << std::endl;
 	int pipeIn[2]; // Send data to CGI
 	int pipeOut[2]; // Receive data from CGI
-
 	if (pipe(pipeOut) == -1 || pipe(pipeIn) == -1)
 		return (500);
 
@@ -111,7 +109,6 @@ int	CgiHandler::execute()
 	fcntl(_pipeFd, F_SETFL, O_NONBLOCK);
 
 	_startTime = time(NULL);
-	_timeout = false;
 	_finished = false;
 
 	return 0;
@@ -121,7 +118,7 @@ void	CgiHandler::readFromCgi()
 {
 	size_t bytesRead = 0;
 	int status;
-	pid_t result;
+	pid_t result = 0;
 	if (_pid > 0)
 	{
 		result = waitpid(_pid, &status, WNOHANG);
@@ -136,7 +133,6 @@ void	CgiHandler::readFromCgi()
 		return;
 	char buffer[4096];
 	ssize_t bytes = read(_pipeFd, buffer, sizeof(buffer));
-	std::cout << "Read from CGI: " << bytes << " bytes" << std::endl;
 	if (bytes < 0)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -236,13 +232,11 @@ bool	CgiHandler::checkTimeout(void)
 
 	if (_finished || _pid == -1)
 		return (false);
-	// std::cout << "Script running for " << (time(NULL) - _startTime) << " seconds." << std::endl;
-	// std::cout << "Timeout set for " << _timeout << " seconds." << std::endl;
-	if (time(NULL) - _startTime >= 5)
+	if (time(NULL) - _startTime >= _timeout)
 	{
 		kill(_pid, SIGKILL);
 
-		ret = waitpid(_pid, NULL, NULL);
+		ret = waitpid(_pid, NULL, 0);
 
 		if (ret == _pid || ret == -1)
 		{
@@ -251,8 +245,6 @@ bool	CgiHandler::checkTimeout(void)
 			if (_pipeFd != -1)
 				close(_pipeFd);
 			_pipeFd = -1;
-
-			_timeout = true;
 			_statusCode = 504;
 			_finished = true;
 

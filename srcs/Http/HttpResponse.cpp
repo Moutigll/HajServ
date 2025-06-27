@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/27 17:20:01 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/27 18:08:56 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -362,7 +362,6 @@ void HttpResponse::getFile()
 		// File is a CGI script: create the CGI handler
 		std::map<std::string, std::string> envMap;
 		generateEnvMap(full, envMap);
-		std::cout << "CGI script detected: " << full << std::endl;
 		_cgiHandler = new CgiHandler(cgiBin, full, _body, envMap, loc->_cgi_timeout);
 		_cgiHandler->execute();
 		_isCgiComplete = false;
@@ -387,11 +386,11 @@ bool	HttpResponse::handleCgi()
 	if (!_cgiHandler)
 		return false;
 
+	int timeout;
 	_cgiHandler->readFromCgi();
-	_cgiHandler->checkTimeout();
+	timeout = _cgiHandler->checkTimeout();
 	if (_cgiHandler->isFinished())
 	{
-		std::cout << "CGI handler finished." << std::endl;
 		_isCgiComplete = true;
 		output = _cgiHandler->getOutput();
 		setStatus(_cgiHandler->getStatusCode());
@@ -399,8 +398,16 @@ bool	HttpResponse::handleCgi()
 			_body = output;
 		else
 		{
-			setStatus(500);
-			_body = "<html><body><h1>Internal Server Error</h1></body></html>";
+			if (timeout)
+			{
+				setStatus(504); // Gateway Timeout
+				setBody(_ErrorStatus.getMessage(504));
+			}
+			else if (_cgiHandler->getStatusCode() == 0)
+			{
+				setStatus(500); // Internal Server Error
+				setBody(_ErrorStatus.getMessage(500));
+			}
 		}
 		return true;
 	}
@@ -421,10 +428,7 @@ t_buffer	HttpResponse::sendResponse()
 		if (!_isCgiComplete)
 			return buf;
 		if (_response.empty())
-		{
-			std::cout << "Constructing response headers..." << std::endl;
 			construct();
-		}
 		if (!_isCgiComplete)
 			return buf;
 		if (_response.empty())
