@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 21:14:48 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/27 05:04:02 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/27 08:00:03 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -110,8 +110,7 @@ int	CgiHandler::execute()
 	close(pipeIn[1]);
 
 	_pipeFd = pipeOut[0];
-	int flags = fcntl(_pipeFd, F_GETFL, 0);
-	fcntl(_pipeFd, F_SETFL, flags | O_NONBLOCK); // Set pipe to non-blocking mode to avoid blocking on read if no data is available
+ // Set pipe to non-blocking mode to avoid blocking on read if no data is available
 
 	_startTime = time(NULL);
 	_timeout = false;
@@ -122,11 +121,11 @@ int	CgiHandler::execute()
 
 void	CgiHandler::readFromCgi()
 {
+	size_t bytesRead = 0;
 	if (_pipeFd == -1 || _finished)
 		return;
 	char buffer[4096];
 	ssize_t bytes = read(_pipeFd, buffer, sizeof(buffer));
-	std::cout << "Bytes read from CGI pipe: " << bytes << std::endl;
 	if (bytes < 0)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -142,16 +141,23 @@ void	CgiHandler::readFromCgi()
 	}
 	while (bytes > 0)
 	{
-		std::cout << "Read " << bytes << " bytes from CGI pipe." << std::endl;
-		std::cout << "Buffer content: " << std::string(buffer, bytes) << std::endl;
+		bytesRead += bytes;
+		if (bytesRead > 16384) // Prevent buffer overflow, max 16KB output
+		{
+			g_logger.log(LOG_ERROR, "CGI output too large, truncating.");
+			_finished = true;
+			_pid = -1;
+			_statusCode = 504; // Gateway Timeout
+			_output.append(buffer, bytes);
+			break;
+		}
 		_output.append(buffer, bytes); // Empty data in the pipe
 		bytes = read(_pipeFd, buffer, sizeof(buffer));
 	}
-	std::cout << "Read " << bytes << " bytes from CGI pipe." << std::endl;
 	if (bytes == 0) // The process has finished writing
 	{
-		//close(_pipeFd);
-		//_pipeFd = -1;
+		close(_pipeFd);
+		_pipeFd = -1;
 
 		int status;
 		pid_t ret;
@@ -165,7 +171,7 @@ void	CgiHandler::readFromCgi()
 		}
 		else if (ret == _pid) // Processus finished
 		{
-			//_finished = true;
+			_finished = true;
 			_pid = -1;
 
 			if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
@@ -175,7 +181,7 @@ void	CgiHandler::readFromCgi()
 		}
 		else // Error in waitpid
 		{
-			//_finished = true;
+			_finished = true;
 			_pid = -1;
 			_statusCode = 500;
 		}
