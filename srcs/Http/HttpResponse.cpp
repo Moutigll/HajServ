@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/28 11:23:17 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 00:20:52 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -143,32 +143,90 @@ void	HttpResponse::construct()
 		Headers
 ---------------------*/
 
-static std::string	getMimeType(const std::string &filePath) {
-	size_t		dot = filePath.find_last_of('.');
-	if (dot == std::string::npos) // No extension found
+static std::string	getMimeType(const std::string &file_path) {
+	size_t		dot = file_path.find_last_of('.');
+	if (dot == std::string::npos)
 		return "application/octet-stream";
 
-	std::string ext = filePath.substr(dot + 1);
+	std::string ext = file_path.substr(dot + 1);
 
 	if (ext == "html" || ext == "htm")
 		return "text/html";
 	if (ext == "css")
 		return "text/css";
-	if (ext == "js")
+	if (ext == "js" || ext == "mjs")
 		return "application/javascript";
+	if (ext == "json")
+		return "application/json";
+	if (ext == "txt")
+		return "text/plain";
 	if (ext == "png")
 		return "image/png";
 	if (ext == "jpg" || ext == "jpeg")
 		return "image/jpeg";
-	if (ext == "gif")
-		return "image/gif";
+	if (ext == "webp")
+		return "image/webp";
 	if (ext == "svg")
 		return "image/svg+xml";
+	if (ext == "ico")
+		return "image/x-icon";
+	if (ext == "gif")
+		return "image/gif";
+
+	if (ext == "woff" || ext == "woff2")
+		return "font/woff";
+	if (ext == "ttf")
+		return "font/ttf";
+	if (ext == "otf")
+		return "font/otf";
+
 	if (ext == "mp4")
 		return "video/mp4";
+	if (ext == "webm")
+		return "video/webm";
+	if (ext == "mp3")
+		return "audio/mpeg";
+	if (ext == "ogg")
+		return "audio/ogg";
+	if (ext == "wav")
+		return "audio/wav";
+	if (ext == "flac")
+		return "audio/flac";
+
+	if (ext == "xml")
+		return "application/xml";
+	if (ext == "csv")
+		return "text/csv";
+	if (ext == "md")
+		return "text/markdown";
+	if (ext == "yaml" || ext == "yml")
+		return "application/x-yaml";
+
+	if (ext == "zip")
+		return "application/zip";
+	if (ext == "tar")
+		return "application/x-tar";
+	if (ext == "gz")
+		return "application/gzip";
+	if (ext == "bz2")
+		return "application/x-bzip2";
+
+	if (ext == "sh")
+		return "application/x-sh";
+	if (ext == "py")
+		return "text/x-python";
+	if (ext == "php")
+		return "application/x-httpd-php";
+	if (ext == "c")
+		return "text/x-c";
+	if (ext == "cpp"  || ext == "hpp" || ext == "tpp")
+		return "text/x-c++src";
+	if (ext == "h" || ext == "hpp")
+		return "text/x-c";
 
 	return "application/octet-stream";
 }
+
 
 /**
  * @brief Get file information and determine the appropriate HTTP status code.
@@ -382,6 +440,74 @@ void HttpResponse::getFile()
 	Buffer Sending
 ---------------------------*/
 
+void HttpResponse::extractCgiHeaders(const std::string &body) {
+	_headers.clear();
+	_headers["Content-Type"] = "text/plain"; // Default content type if none provided
+
+	// First check if this looks like header data (contains colon)
+	bool has_headers = false;
+	size_t first_line_end = body.find('\n');
+	if (first_line_end != std::string::npos) {
+		std::string first_line = body.substr(0, first_line_end);
+		if (first_line.find(':') != std::string::npos) {
+			has_headers = true;
+		}
+	}
+
+	if (!has_headers) { // If no headers detected, treat entire body as content
+		_body = body;
+		return;
+	}
+
+	size_t headerEnd = body.find("\r\n\r\n"); // Find header-body separator
+	if (headerEnd == std::string::npos) {
+		headerEnd = body.find("\n\n");
+		if (headerEnd == std::string::npos) {
+			_body = body;
+			return;
+		}
+	}
+
+	// Extract headers part
+	std::string headersPart = body.substr(0, headerEnd);
+	std::istringstream headerStream(headersPart);
+	std::string line;
+
+	while (std::getline(headerStream, line)) {
+		// Remove trailing \r if present
+		if (!line.empty() && line[line.size() - 1] == '\r') {
+			line.erase(line.size() - 1);
+		}
+
+		size_t colonPos = line.find(':');
+		if (colonPos == std::string::npos) continue;
+
+		std::string name = line.substr(0, colonPos);
+		std::string value = line.substr(colonPos + 1);
+
+		// Trim leading whitespace
+		value.erase(0, value.find_first_not_of(" \t"));
+
+		// Special case: Status header
+		if (name == "Status") {
+			size_t codeEnd = value.find(' ');
+			std::string codeStr = (codeEnd == std::string::npos) ? value : value.substr(0, codeEnd);
+			setStatus(atoi(codeStr.c_str()));
+		} else if (name == "Content-Length" || name == "Server" || name == "Date" || name == "Connection")
+			continue; // Skip these headers as they are handled separately
+		else {
+			_headers[name] = value;
+		}
+	}
+
+	// Extract body (skip separator)
+	if (headerEnd == body.find("\r\n\r\n")) {
+		_body = body.substr(headerEnd + 4); // Skip \r\n\r\n
+	} else {
+		_body = body.substr(headerEnd + 2); // Skip \n\n
+	}
+}
+
 void	HttpResponse::handleCgi()
 {
 	std::string	output;
@@ -398,7 +524,7 @@ void	HttpResponse::handleCgi()
 		output = _cgiHandler->getOutput();
 		setStatus(_cgiHandler->getStatusCode());
 		if (!output.empty())
-			_body = output;
+			extractCgiHeaders(output);
 		else
 		{
 			if (timeout)

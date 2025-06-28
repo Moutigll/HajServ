@@ -1,9 +1,6 @@
 <?php
 // Simple CGI PHP script
 
-// Send the HTTP header
-header("Content-Type: text/html");
-
 // Output some HTML content
 echo "<html><head><title>CGI Test</title></head><body>";
 echo "<h1>Hello from PHP CGI script!</h1>";

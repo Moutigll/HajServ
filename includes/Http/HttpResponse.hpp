@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:26:55 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/28 10:16:05 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 00:01:08 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -130,6 +130,18 @@ class HttpResponse : public HttpTransaction {
 		 * @note This function should be called repeatedly until the CGI execution is complete.
 		 */
 		void	handleCgi();
+
+
+		/**
+		 * @brief Extract CGI headers from the body and store them in _headers.
+		 * 
+		 * This function parses the headers at the beginning of a CGI body,
+		 * stores them line by line in _headers and removes them from the body.
+		 * Handle special headers such as status code, content type, and content length.
+		 * 
+		 * @param body The CGI response body to parse.
+		 */
+		void	extractCgiHeaders(const std::string &body);
 
 		/**
 		 * @brief Returns a buffer with the next chunk of the response body or file content.

@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 02:22:13 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/28 10:04:17 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/28 22:31:09 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -112,7 +112,7 @@ static std::string	uriEncode(const std::string &value)
 		unsigned char c = value[i];
 
 		// Alphanumeric characters and a few special characters are not encoded
-		if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
+		if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~' || c == '/')
 			escaped << c;
 		else
 			escaped << '%' << std::uppercase << std::setw(2) << int(c) << std::nouppercase;
@@ -176,10 +176,12 @@ std::string	generateAutoindexPage(const std::string &uri, const std::string &dir
 			if (link.empty() || link[link.size() - 1] != '/')
 				link += "/";
 			link += uriEncode(name);
+			if (link[link.size() - 1] != '/')
+				link += "/"; 
 
 			html += "<div class=\"entry\">";
 			html += svgIconFolder;
-			html += "<a href=\"" + link + "\">" + name + "/</a>";
+			html += "<a href=\"" + link + "\">" + name + "</a>";
 			html += "</div>";
 		} else {
 			link = uri;
