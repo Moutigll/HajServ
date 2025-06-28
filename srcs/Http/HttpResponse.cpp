@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/28 10:53:55 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/28 11:23:17 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,6 +80,10 @@ HttpResponse::~HttpResponse() {
 	if (_cgiHandler) {
 		delete _cgiHandler;
 		_cgiHandler = NULL;
+	}
+	if (_readFd >= 0) {
+		close(_readFd);
+		_readFd = -1;
 	}
 }
 
