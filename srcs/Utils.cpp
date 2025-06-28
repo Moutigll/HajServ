@@ -3,14 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/30 14:29:56 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/25 17:01:58 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/28 08:28:01 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Utils.hpp"
+#include "../includes/Logger.hpp"
 
 std::string trim(const std::string &s)
 {
@@ -62,4 +63,36 @@ void toLowercase(std::string& s)
 {
 	for (size_t i = 0; i < s.length(); ++i)
 		s[i] = std::tolower(static_cast<unsigned char>(s[i]));
+}
+
+size_t giveBodySize(const std::string &value)
+{
+	size_t size = atoll(value.c_str());
+	if (size <= 0)
+	{
+		std::cerr << RED << "Error: Invalid value '" << value << "'." << RESET << std::endl;
+		return 0;
+	}
+	if (value[value.length() - 1] == 'G')
+		return size * 1024 * 1024 * 1024; // Convert GB to bytes
+	else if (value[value.length() - 1] == 'M')
+		return size * 1024 * 1024; // Convert MB to bytes
+	else if (value[value.length() - 1] == 'K')
+		return size * 1024; // Convert KB to bytes
+	else
+		return size; // Default case, assume bytes
+}
+
+std::string getSecondElem(std::string &line)
+{
+	std::istringstream iss(line);
+	std::string value;
+	int i = 0;
+	while (getline(iss, value, ' '))
+	{
+		if (i == 1)
+			return (value);
+		i++;
+	}
+	return ("");
 }

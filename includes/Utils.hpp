@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 23:50:18 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/26 22:48:08 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/28 08:28:06 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,6 +17,7 @@
 # include <ctime>
 # include <fstream>
 # include <iostream>
+#include <set>
 # include <map>
 # include <sstream>
 # include <string>
@@ -38,7 +39,6 @@ struct t_location
 	bool								_autoindex;
 	std::map<std::string, std::string>	_cgi; // Extension, CGI path
 	std::vector<std::string>			_methods;
-	std::vector<std::string>			_try_files;
 	std::vector<std::string>			_indexes;
 
 	t_location() :_root(""), _cgi_timeout(5), _return_code(0), _autoindex(false) {}
@@ -57,8 +57,9 @@ struct t_server
 	std::vector<int>					_ports;
 	size_t								_timeout;
 	size_t								_maxBodySize;
+	size_t								_clientMaxBodySize;
 
-	t_server() : _root(""), _timeout(30), _maxBodySize(4096) {} // Default timeout 30s, max body size 4096 bytes
+	t_server() : _root(""), _timeout(30), _maxBodySize(4096), _clientMaxBodySize(4096) {} // Default timeout 30s, max body size 4096 bytes
 };
 
 struct t_buffer
@@ -119,5 +120,29 @@ std::string	to_string(const T &value)
 }
 
 void toLowercase(std::string& s);
+
+template<typename T>
+bool hasDuplicates(const std::vector<T>& vec)
+{
+	std::set<T> seen;
+	for (typename std::vector<T>::const_iterator it = vec.begin(); it != vec.end(); ++it)
+		if (!seen.insert(*it).second)
+			return true;
+	return false; // no duplicates
+}
+
+size_t giveBodySize(const std::string &value);
+
+/**
+ * @brief Extract the second element from a whitespace-separated string.
+ *
+ * This function parses the input string `line` by splitting it at spaces
+ * and returns the second element found. If the second element does not exist,
+ * it returns an empty string.
+ *
+ * @param[in] line Reference to the input string to parse.
+ * @return std::string The second element in the string, or an empty string if none.
+ */
+std::string getSecondElem(std::string &line);
 
 #endif
