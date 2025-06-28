@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 23:50:18 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/28 10:27:03 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 00:58:24 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@ struct t_location
 	std::vector<std::string>			_methods;
 	std::vector<std::string>			_indexes;
 
-	t_location() :_root(""), _cgiTimeout(5), _return_code(0), _autoindex(false) {}
+	t_location() :_root(""), _cgiTimeout(5), _return_code(0), _return_uri(""), _autoindex(false) {}
 };
 
 struct t_server

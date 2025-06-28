@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 00:20:52 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 01:13:44 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -353,6 +353,19 @@ void HttpResponse::getFile()
 		setStatus(405);
 		return;
 	}
+	if (!loc->_return_uri.empty())
+	{
+		// If a return URI is set, redirect to it
+		setStatus(301);
+		_headers["Location"] = loc->_return_uri;
+		_body = "Redirecting to " + loc->_return_uri + "...";
+		if (loc->_return_code != 0)
+			setStatus(loc->_return_code);
+		return;
+	} else if (loc->_return_code != 0) {
+		setStatus(loc->_return_code);
+		return;
+	}
 
 	// 2) Build the URI relative to the location path
 	std::string prefix = loc->_path;
@@ -413,6 +426,13 @@ void HttpResponse::getFile()
 	if (!exists || !S_ISREG(st.st_mode))
 	{
 		setStatus(404);
+		return;
+	}
+
+	if (_method == "DELETE")
+	{
+		g_logger.log(LOG_INFO, "DELETE request for file: " + full);
+		setStatus(deleteFile(full));
 		return;
 	}
 

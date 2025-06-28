@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 02:22:13 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/28 22:31:09 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 00:37:17 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -207,4 +207,27 @@ std::string	generateAutoindexPage(const std::string &uri, const std::string &dir
 	closedir(dir);
 	html += "</body></html>";
 	return html;
+}
+
+int	deleteFile(const std::string &filePath)
+{
+	struct stat	s_stat;
+	int			ret;
+
+	ret = stat(filePath.c_str(), &s_stat);
+	if (ret != 0)
+		return 404; // Not Found
+
+	if (!S_ISREG(s_stat.st_mode))
+		return 403; // Forbidden, not a regular file
+
+	ret = access(filePath.c_str(), W_OK);
+	if (ret != 0)
+		return 403; // Forbidden, pas de droit en écriture
+
+	ret = unlink(filePath.c_str());
+	if (ret != 0)
+		return 500; // Internal Server Error, suppression échouée
+
+	return 200; // OK, fichier supprimé
 }
