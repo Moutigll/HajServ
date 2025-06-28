@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 16:45:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 20:10:49 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/28 10:47:34 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,7 +57,7 @@ class ServerManager
 
 	private:
 		int								_epollFd;
-		std::vector<Port *>				_ports;
+		std::vector<Port *>				_ports; // List of listening ports.
 		std::map<int, Connection *>		_connections;	// Active client connections.
 
 		/**
@@ -74,7 +74,7 @@ class ServerManager
 		 * @param fd File descriptor to check.
 		 * @return Pointer to Port if fd is a listening socket, NULL otherwise.
 		 */
-		Port *isListeningSocket(int fd) const;
+		Port	*isListeningSocket(int fd) const;
 
 		/**
 		 * @brief Accepts a new client connection on the given listening port.
@@ -129,6 +129,13 @@ class ServerManager
 		 */
 		void	handleEpollInEvent(int fd, std::map<int, Connection *>::iterator &it);
 
+		/**
+		 * @brief Handles an EPOLLOUT event (write readiness) on a client connection.
+		 * This function writes data from the connection's write buffer to the file descriptor,
+		 * updates the connection state, and handles errors or disconnection scenarios.
+		 * @param fd The file descriptor associated with the EPOLLOUT event.
+		 * @param it An iterator pointing to the connection in the _connections map. 
+		 */
 		void	handleEpollOutEvent(int fd, std::map<int, Connection *>::iterator &it);
 };
 

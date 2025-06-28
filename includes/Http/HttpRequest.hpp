@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:24:31 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/25 17:25:33 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/28 11:08:55 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 
 class HttpRequest : public HttpTransaction {
 	public:
-		HttpRequest();
+		HttpRequest(Port *port);
 		HttpRequest(const HttpRequest &other);
 		HttpRequest &operator=(const HttpRequest &other);
 		virtual ~HttpRequest();
@@ -37,13 +37,6 @@ class HttpRequest : public HttpTransaction {
 		 * @return true if the request is complete, false otherwise.
 		 */
 		virtual bool	isComplete() const;
-
-		/**
-		 * @brief Set the port on which the request was received.
-		 * @param port Pointer to the Port object.
-		 */
-		void			setPort(Port *port);
-
 	private:
 		enum ParseState {
 			PS_REQUEST_LINE,

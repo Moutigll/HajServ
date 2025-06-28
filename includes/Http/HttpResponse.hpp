@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:26:55 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 21:05:14 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/28 10:16:05 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,10 +15,9 @@
 
 #include "HttpRequest.hpp"
 #include "HttpError.hpp"
-#include "GetFiles.hpp"
 #include "../CgiHandler.hpp"
 
-const std::string VERSION = "HajServ/2.2.0";
+const std::string VERSION = "HajServ/2.2.5";
 
 class HttpResponse : public HttpTransaction {
 	public:
@@ -114,9 +113,23 @@ class HttpResponse : public HttpTransaction {
 		 */
 		void		getFile();
 
-		std::string isCgiFile(const t_location *loc, const std::string &filepath);
+		/**
+		 * @brief Checks if the given file path is a CGI script based on the location configuration.
+		 * @param loc The location configuration to check against.
+		 * @param filepath The file path to check.
+		 * @return Returns the CGI binary path if the file is a CGI script, or an empty string if not.
+		 */
+		std::string	isCgiFile(const t_location *loc, const std::string &filepath);
 
-		bool	handleCgi();
+		/**
+		 * @brief Handles the CGI execution and reads the output.
+		 * This function checks if the CGI handler is set, reads from the CGI output pipe,	
+		 * and updates the response body with the CGI output.
+		 * If the CGI execution is complete, it sets the status code based on the CGI handler's output.
+		 * If the CGI execution times out or fails, it sets the appropriate error status.
+		 * @note This function should be called repeatedly until the CGI execution is complete.
+		 */
+		void	handleCgi();
 
 		/**
 		 * @brief Returns a buffer with the next chunk of the response body or file content.
@@ -125,6 +138,14 @@ class HttpResponse : public HttpTransaction {
 		 */
 		t_buffer	getBody();
 
+		/**
+		 * @brief Generates environment variables for CGI execution.
+		 * @param filepath The file path to the CGI script.
+		 * @param envMap The map to populate with environment variables.
+		 * This function sets common CGI environment variables such as GATEWAY_INTERFACE, SERVER_PROTOCOL,
+		 * REQUEST_METHOD, SCRIPT_FILENAME, SCRIPT_NAME, SERVER_SOFTWARE, QUERY_STRING, etc.
+		 * It also includes any additional environment variables that may be required for the CGI script.
+		*/
 		void generateEnvMap(const std::string &filepath, std::map<std::string, std::string> &envMap);
 };
 

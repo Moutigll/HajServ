@@ -6,10 +6,13 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:01 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 20:08:56 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/28 10:57:59 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <iostream>
+
+#include "../includes/Logger.hpp"
 #include "../includes/ServerManager.hpp"
 
 volatile sig_atomic_t keepRunning = 1;
@@ -73,8 +76,7 @@ bool	ServerManager::updateEpoll(int fd, uint32_t events, int op)
 
 bool	ServerManager::init(const std::vector<t_server> &servers)
 {
-	std::map<int, Port *>	port_map;
-	std::map<int, std::vector<t_server const *> >	port_to_servers;
+	std::map<int, std::vector<t_server const *> >	portToServer; // Map to associate ports with servers
 
 	this->_epollFd = epoll_create1(0);
 	if (this->_epollFd == -1)
@@ -83,17 +85,18 @@ bool	ServerManager::init(const std::vector<t_server> &servers)
 		return false;
 	}
 
-	for (std::vector<t_server>::const_iterator it = servers.begin(); it != servers.end(); ++it)
+	for (std::vector<t_server>::const_iterator it = servers.begin(); it != servers.end(); ++it) // Iterate through all servers
 	{
+		// For all port in the server add the server to the map at the port key
 		for (std::vector<int>::const_iterator pit = it->_ports.begin(); pit != it->_ports.end(); ++pit)
-			port_to_servers[*pit].push_back(&(*it));
+			portToServer[*pit].push_back(&(*it));
 	}
 
-	for (std::map<int, std::vector<t_server const *> >::iterator it = port_to_servers.begin(); it != port_to_servers.end(); ++it)
+	for (std::map<int, std::vector<t_server const *> >::iterator it = portToServer.begin(); it != portToServer.end(); ++it) // Iterate through all ports
 	{
 		int	port_number = it->first;
 
-		Port *port = new Port(port_number, NULL);
+		Port *port = new Port(port_number, NULL); // Create a new Port object for the current port number
 
 		for (std::vector<t_server const *>::iterator sit = it->second.begin(); sit != it->second.end(); ++sit)
 			port->addServer(const_cast<t_server *>(*sit));
@@ -123,7 +126,7 @@ bool	ServerManager::init(const std::vector<t_server> &servers)
     Main logic loop
 ---------------------*/
 
-Port *ServerManager::isListeningSocket(int fd) const
+Port	*ServerManager::isListeningSocket(int fd) const
 {
 	for (size_t i = 0; i < this->_ports.size(); ++i)
 	{
@@ -145,6 +148,11 @@ void	ServerManager::start(void)
 
 	while (keepRunning)
 	{
+		/**
+		 * This function stop the code until we recieve an event on the
+		 * monitored fd or reach the TIMEOUT treshold wich is used to
+		 * forcefully close all connections open for too long
+		 */
 		nfds = epoll_wait(this->_epollFd, events, EPOLL_MAX_EVENTS, EPOLL_TIMEOUT);
 		if (nfds == -1)
 		{
@@ -155,10 +163,10 @@ void	ServerManager::start(void)
 		}
 
 		i = 0;
-		while (i < nfds)
+		while (i < nfds) // Iterate through all events received
 		{
 			int	fd = events[i].data.fd;
-			Port *port = this->isListeningSocket(fd);
+			Port *port = isListeningSocket(fd);
 
 			if (port)
 				newConnection(port);
@@ -166,7 +174,7 @@ void	ServerManager::start(void)
 				handleConnectionEvent(events[i]);
 			++i;
 		}
-		this->checkTimeouts();
+		checkTimeouts();
 	}
 }
 
@@ -178,7 +186,7 @@ void	ServerManager::newConnection(Port *port)
 		return;
 	}
 
-	int	client_fd = accept(port->getSocketFd(), NULL, NULL);
+	int	client_fd = accept(port->getSocketFd(), NULL, NULL); // Accept a new connection on the listening socket
 	if (client_fd < 0)
 	{
 		if (errno != EAGAIN && errno != EWOULDBLOCK)
@@ -195,7 +203,7 @@ void	ServerManager::newConnection(Port *port)
 		return;
 	}
 
-	Connection *conn = new Connection(client_fd, port);
+	Connection *conn = new Connection(client_fd, port); // Create a new Connection object for the client
 	if (conn->isClosed())
 	{
 		close(client_fd);
@@ -210,7 +218,7 @@ void	ServerManager::newConnection(Port *port)
 	// EPOLLRDHUP = Peer closed connection
 	// EPOLLHUP = Hang-up event
 	// EPOLLERR = Error event
-	if (!this->updateEpoll(client_fd, EPOLLIN | EPOLLET | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_ADD))
+	if (!this->updateEpoll(client_fd, EPOLLIN | EPOLLET | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_ADD)) // Add the client fd to epoll monitoring
 	{
 		g_logger.log(LOG_ERROR, "Failed to add client fd " + to_string(client_fd) + " to epoll: " + std::string(strerror(errno)));
 		close(client_fd);
@@ -239,8 +247,8 @@ void	ServerManager::handleConnectionEvent(struct epoll_event event)
 {
 	int	fd = event.data.fd;
 
-	std::map<int, Connection *>::iterator it = this->_connections.find(fd);
-	if (it == this->_connections.end())
+	std::map<int, Connection *>::iterator con = this->_connections.find(fd);
+	if (con == this->_connections.end()) // If the fd is not found in the connections map, should not happen
 	{
 		g_logger.log(LOG_WARNING, "Received event for unknown fd " + to_string(fd));
 		epoll_ctl(this->_epollFd, EPOLL_CTL_DEL, fd, NULL);
@@ -248,12 +256,12 @@ void	ServerManager::handleConnectionEvent(struct epoll_event event)
 		return;
 	}
 
-	if (it->second->isClosed())
+	if (con->second->isClosed())
 		return;
 
-	it->second->updateLastActivity();
+	con->second->updateLastActivity(); // Update the last activity time for the connection to avoid timeout
 
-	if ((event.events & EPOLLHUP) || (event.events & EPOLLERR) || (event.events & EPOLLRDHUP))
+	if ((event.events & EPOLLHUP) || (event.events & EPOLLERR) || (event.events & EPOLLRDHUP)) // Closing events
 	{
 		if (event.events & EPOLLHUP)
 			g_logger.log(LOG_DEBUG, "Client on fd " + to_string(fd) + " hung up, how rude!");
@@ -261,40 +269,38 @@ void	ServerManager::handleConnectionEvent(struct epoll_event event)
 			g_logger.log(LOG_DEBUG, "Client on fd " + to_string(fd) + " closed the connection");
 		else if (event.events & EPOLLERR)
 			g_logger.log(LOG_ERROR, "EPOLLERR event on fd " + to_string(fd) + ": " + std::string(strerror(errno)));
-		closeConnection(fd, it);
+		closeConnection(fd, con);
 		return;
 	}
 
 	if (event.events & EPOLLIN)
-		handleEpollInEvent(fd, it);
+		handleEpollInEvent(fd, con);
 	else if (event.events & EPOLLOUT)
-		handleEpollOutEvent(fd, it);
+		handleEpollOutEvent(fd, con);
 	else
 		g_logger.log(LOG_WARNING, "Unhandled event on fd " + to_string(fd) + ": " + to_string(event.events));
 }
 
 void	ServerManager::handleEpollInEvent(int fd, std::map<int, Connection *>::iterator &it)
 {
-	bool	parse_result = false;
-	ssize_t	bytes_read;
+	bool	parseResult = false;
+	ssize_t	bytesRead;
 
 	while (1)
 	{
 		char	buffer[4096];
-		bytes_read = recv(fd, buffer, sizeof(buffer), 0);
-		buffer[bytes_read] = '\0';
+		bytesRead = recv(fd, buffer, sizeof(buffer), 0);
+		buffer[bytesRead] = '\0';
 
-		if (bytes_read > 0 && it->second->getState() != WRITING)
-			parse_result = it->second->parseRequest(buffer);
-		else if (bytes_read == 0)
+		if (bytesRead > 0 && it->second->getState() != WRITING)
+			parseResult = it->second->parseRequest(buffer);
+		else if (bytesRead == 0)
 		{
 			g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " closed by peer");
 			closeConnection(fd, it);
 			return;
-		}
-		else
-		{
-			if (errno == EAGAIN || errno == EWOULDBLOCK)
+		} else {
+			if (errno == EAGAIN || errno == EWOULDBLOCK) // Nothing to read, we can break the loop
 				break;
 			else
 			{
@@ -304,61 +310,55 @@ void	ServerManager::handleEpollInEvent(int fd, std::map<int, Connection *>::iter
 			}
 		}
 	}
-	if (parse_result && it->second->getState() == WRITING) // If the request is complete we enable EPOLLOUT
+	if (parseResult && it->second->getState() == WRITING) // If the request is complete we enable EPOLLOUT else we continue to read the connection
 		updateEpoll(fd, EPOLLOUT | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_MOD);
 }
 
-void	ServerManager::handleEpollOutEvent(int fd, std::map<int, Connection *>::iterator &it)
+void	ServerManager::handleEpollOutEvent(int fd, std::map<int, Connection *>::iterator &con)
 {
-	if (it->second->getState() != WRITING)
+	if (con->second->getState() != WRITING)
 	{
 		g_logger.log(LOG_WARNING, "Received EPOLLOUT event on fd " + to_string(fd) + " but connection is not in WRITING state");
 		return;
 	}
 	
-	t_buffer write_buffer = it->second->getReadBuffer();
-	if (!write_buffer.data && write_buffer.size == 4242) // 4242 is a magic number indicating no data to write
+	t_buffer writeBuffer = con->second->getWriteBuffer();
+	if (!writeBuffer.data && writeBuffer.size == 4242) // 4242 is a magic number indicating no data to write
 		return;
-	if (!write_buffer.data || write_buffer.size == 0)
+	if (!writeBuffer.data || writeBuffer.size == 0)
 	{
 		g_logger.log(LOG_ERROR, "No write buffer available for fd " + to_string(fd));
 		updateEpoll(fd, EPOLLIN | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_MOD);
 		return;
 	}
-	ssize_t	bytes_written = send(fd, write_buffer.data, write_buffer.size, 0);
-	if (bytes_written < 0)
+	ssize_t	bytesWritten = send(fd, writeBuffer.data, writeBuffer.size, 0);
+	if (bytesWritten < 0)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
 		{
 			g_logger.log(LOG_DEBUG, "EAGAIN or EWOULDBLOCK on fd " + to_string(fd) + ", will retry later");
 			return;
-		}
-		else
-		{
+		} else {
 			g_logger.log(LOG_ERROR, "Error writing to fd " + to_string(fd) + ": " + std::string(strerror(errno)));
-			closeConnection(fd, it);
+			closeConnection(fd, con);
 			return;
 		}
-	}
-	else if (bytes_written == 0)
-	{
+	} else if (bytesWritten == 0) {
 		g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " closed by peer during write");
-		closeConnection(fd, it);
+		closeConnection(fd, con);
 		return;
 	}
-	it->second->successWrite();
-	if (it->second->getState() == READING)
+	con->second->successWrite();
+	if (con->second->getState() == READING)
 	{
-		g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " switched to READING state after writing " + to_string(bytes_written) + " bytes");
+		g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " switched to READING state after writing " + to_string(bytesWritten) + " bytes");
 		updateEpoll(fd, EPOLLIN | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_MOD);
-	}
-	else if (it->second->getState() == DONE)
-	{
-		g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " finished writing " + to_string(bytes_written) + " bytes, closing connection");
-		closeConnection(fd, it);
+	} else if (con->second->getState() == DONE) {
+		g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " finished writing " + to_string(bytesWritten) + " bytes, closing connection");
+		closeConnection(fd, con);
 	}
 	else
-		g_logger.log(LOG_DEBUG, "Partial write on fd " + to_string(fd) + ", " + to_string(bytes_written) + " bytes written, waiting for more data");
+		g_logger.log(LOG_DEBUG, "Partial write on fd " + to_string(fd) + ", " + to_string(bytesWritten) + " bytes written, waiting for more data");
 }
 
 

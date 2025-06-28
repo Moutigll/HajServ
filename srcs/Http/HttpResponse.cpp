@@ -3,16 +3,16 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/27 18:08:56 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/28 10:53:55 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include "../../includes/Http/GetFiles.hpp"
+#include "../../includes/Logger.hpp"
 #include "../../includes/Http/HttpResponse.hpp"
-#include <iostream>
-#include <ostream>
 
 HttpResponse::HttpResponse(const t_server &server)
 	: HttpTransaction(),
@@ -44,6 +44,7 @@ HttpResponse::HttpResponse(const t_server &server, HttpRequest &request)
 	this->_uri = request.getRequest();
 	this->_query = request.getQuery();
 	this->_protocol = request.getProtocol();
+	this->_connectionKeepAlive = request.isConnectionKeepAlive();
 	this->_headers.clear(); // Clear headers from the request, we will build our own response headers
 }
 
@@ -83,7 +84,6 @@ HttpResponse::~HttpResponse() {
 }
 
 
-
 /*-------------------------
  Constructing the Response
 ---------------------------*/
@@ -105,8 +105,7 @@ void	HttpResponse::construct()
 		if (!_isCgiComplete)
 			return;
 		if (!_body.empty()) // If it's a directory listing
-			_response += "Content-Length: " + to_string(_body.size()) + "\r\n" \
-			+ "Content-Type: text/html\r\n";
+			_response += "Content-Length: " + to_string(_body.size()) + "\r\n";
 	}
 	
 	// ----- Header Server -----
@@ -250,7 +249,7 @@ std::string HttpResponse::isCgiFile(const t_location *loc, const std::string &fi
 {
 	struct stat st;
 
-	// Check file exists and is regular'
+	// Check file exists and is regular
 	if (stat(filepath.c_str(), &st) != 0 || !S_ISREG(st.st_mode))
 	{
 		_status = 404; // File not found
@@ -270,7 +269,7 @@ std::string HttpResponse::isCgiFile(const t_location *loc, const std::string &fi
 				return cgiBin;
 			else
 			{
-				_status = 403;
+				_status = 403; // Forbidden: file exists but is not executable
 				return "";
 			}
 		}
@@ -362,7 +361,7 @@ void HttpResponse::getFile()
 		// File is a CGI script: create the CGI handler
 		std::map<std::string, std::string> envMap;
 		generateEnvMap(full, envMap);
-		_cgiHandler = new CgiHandler(cgiBin, full, _body, envMap, loc->_cgi_timeout);
+		_cgiHandler = new CgiHandler(cgiBin, full, _body, envMap, loc->_cgiTimeout);
 		_cgiHandler->execute();
 		_isCgiComplete = false;
 		setStatus(200);
@@ -379,12 +378,12 @@ void HttpResponse::getFile()
 	Buffer Sending
 ---------------------------*/
 
-bool	HttpResponse::handleCgi()
+void	HttpResponse::handleCgi()
 {
 	std::string	output;
 	
 	if (!_cgiHandler)
-		return false;
+		return;
 
 	int timeout;
 	_cgiHandler->readFromCgi();
@@ -399,19 +398,12 @@ bool	HttpResponse::handleCgi()
 		else
 		{
 			if (timeout)
-			{
 				setStatus(504); // Gateway Timeout
-				setBody(_ErrorStatus.getMessage(504));
-			}
 			else if (_cgiHandler->getStatusCode() == 0)
-			{
 				setStatus(500); // Internal Server Error
-				setBody(_ErrorStatus.getMessage(500));
-			}
+			_body = _ErrorStatus.getMessage(_status); // It's overwrite by buildErrorPage() but necessary to not infinately loop in construct()
 		}
-		return true;
 	}
-	return false;
 }
 
 
@@ -425,11 +417,11 @@ t_buffer	HttpResponse::sendResponse()
 		
 		if (!_isCgiComplete)
 			handleCgi();
-		if (!_isCgiComplete)
+		if (!_isCgiComplete) // If the CGI has not finished yet, we cannot send the response
 			return buf;
 		if (_response.empty())
 			construct();
-		if (!_isCgiComplete)
+		if (!_isCgiComplete) // First call Cgi object has been created
 			return buf;
 		if (_response.empty())
 		{
@@ -439,57 +431,52 @@ t_buffer	HttpResponse::sendResponse()
 		_isHeadersSent = true;
 
 		size_t headerLen = _response.size();
-		size_t maxBodySize = _server._maxBodySize;
-		size_t total_size = headerLen;
-
-		bool hasBody = !_body.empty();
-		bool hasFile = _readFd >= 0;
-
+		size_t maxBodySize = _server._maxBodySize - headerLen;
 		size_t bodyLen = 0;
-		if (hasBody)
-			bodyLen = std::min(_body.size(), maxBodySize - headerLen);
-		else if (hasFile)
-			bodyLen = maxBodySize - headerLen;
+	
+		if (!_body.empty())
+			bodyLen = std::min(_body.size(), maxBodySize);
+		else if (_readFd >= 0)
+			bodyLen = maxBodySize;
 
-		total_size += bodyLen;
+		char *response = new char[bodyLen + headerLen];
+		std::memcpy(response, _response.c_str(), headerLen);
 
-		char *responseCopy = new char[total_size];
-		std::memcpy(responseCopy, _response.c_str(), headerLen);
-
-		if (hasBody)
+		if (!_body.empty()) // If we have a body we fill the response buffer as much as possible
 		{
-			std::memcpy(responseCopy + headerLen, _body.c_str(), bodyLen);
+			std::memcpy(response + headerLen, _body.c_str(), bodyLen);
 			_body.erase(0, bodyLen);
-			if (_body.empty() && !hasFile)
+			if (_body.empty() && _readFd < 0)
 				_isComplete = true;
-			buf.data = responseCopy;
-			buf.size = total_size;
+			buf.data = response;
+			buf.size = bodyLen + headerLen;
 			return buf;
 		}
-		else if (hasFile)
+		else if (_readFd >= 0)
 		{
-			ssize_t n = read(_readFd, responseCopy + headerLen, bodyLen);
+			ssize_t n = read(_readFd, response + headerLen, bodyLen);
 			if (n < 0)
 			{
 				g_logger.log(LOG_ERROR, "Failed to read file: " + std::string(strerror(errno)));
-				delete[] responseCopy;
+				delete[] response;
 				return buf;
 			}
-			bodyLen = n;
-			if (n == 0 || (size_t)n < maxBodySize - headerLen)
+			else if (n == 0 || (size_t)n < maxBodySize)
 			{
 				close(_readFd);
 				_readFd = -1;
 				_isComplete = true;
 			}
+			bodyLen = n;
 		}
-		else
+		else // If we have no body and no file to read, we consider the response complete
 			_isComplete = true;
 
-		buf.data = responseCopy;
+		buf.data = response;
 		buf.size = headerLen + bodyLen;
 		return buf;
 	}
+	// If we are here, it means we have already sent the headers
 	return getBody();
 }
 

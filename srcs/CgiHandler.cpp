@@ -3,14 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   CgiHandler.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 21:14:48 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/27 18:08:31 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/28 08:06:18 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/CgiHandler.hpp"
+#include "../includes/Logger.hpp"
 
 CgiHandler::CgiHandler()
 	: _timeout(5),
@@ -91,17 +92,24 @@ int	CgiHandler::execute()
 			const_cast<char *>(_scriptPath.c_str()),
 			NULL
 		};
-		char **envp = _buildEnvp();
+		char **envp = buildEnvp();
 		if (!envp)
 			exit(1);
 		execve(_cgiPath.c_str(), argv, envp);
+		g_logger.log(LOG_ERROR, "Error executing CGI script: " + _cgiPath + " - " + std::string(strerror(errno)));
+		freeEnvp(envp);
+		exit(1);
 	}
 
 	close(pipeIn[0]);
 	close(pipeOut[1]);
 
 	if (!_requestBody.empty()) // Write request body to CGI
-	 	write(pipeIn[1], _requestBody.c_str(), _requestBody.size());
+	{
+	 	ssize_t bytesWritten =  write(pipeIn[1], _requestBody.c_str(), _requestBody.size());
+		if (bytesWritten < 0)
+			g_logger.log(LOG_ERROR, "Error writing to CGI pipe: " + std::string(strerror(errno)));
+	}
 	close(pipeIn[1]);
 
 	_pipeFd = pipeOut[0];
@@ -114,81 +122,11 @@ int	CgiHandler::execute()
 	return 0;
 }
 
-void	CgiHandler::readFromCgi()
+void CgiHandler::handleReadError(int bytes)
 {
-	size_t bytesRead = 0;
-	int status;
-	pid_t result = 0;
-	if (_pid > 0)
-	{
-		result = waitpid(_pid, &status, WNOHANG);
-		if (result == _pid)
-		{
-			_finished = true;
-			_pid = -1;
-			_statusCode = (status == 0 ? 200 : 500);
-		}
-	}
-	if (_pipeFd == -1 || _finished)
-		return;
-	char buffer[4096];
-	ssize_t bytes = read(_pipeFd, buffer, sizeof(buffer));
-	if (bytes < 0)
-	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return; // No data available, return and check again later
-		else
-		{
-			g_logger.log(LOG_ERROR, "Error reading from CGI pipe: " + std::string(strerror(errno)));
-			//_finished = true;
-			_pid = -1;
-			_statusCode = 500;
-			return;
-		}
-	}
-	while (bytes > 0)
-	{
-		bytesRead += bytes;
-		if (bytesRead > 16384) // Prevent buffer overflow, max 16KB output
-		{
-			g_logger.log(LOG_ERROR, "CGI output too large, truncating.");
-			_finished = true;
-			_pid = -1;
-			_statusCode = 504; // Gateway Timeout
-			_output.append(buffer, bytes);
-			break;
-		}
-		_output.append(buffer, bytes); // Empty data in the pipe
-		bytes = read(_pipeFd, buffer, sizeof(buffer));
-	}
-	if (bytes == 0) // The process has finished writing
-	{
-		close(_pipeFd);
-		_pipeFd = -1;
-
-		if (_pid > 0)
-		{
-			if (result == -1)
-			{
-				// Handle error
-				_statusCode = 500;
-				_finished = true;
-				perror("waitpid");
-			}
-			else if (result > 0)
-			{
-				if (WIFEXITED(status))
-				{
-					int exitStatus = WEXITSTATUS(status);
-					_statusCode = (exitStatus == 0 ? 200 : 500); // or use CGI output
-				}
-				else if (WIFSIGNALED(status))
-					_statusCode = 500;
-				_finished = true;
-			}
-		}
-	}
-	else if (bytes == 0) // No more data to read, process has finished
+	if ((bytes < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) || bytes > 0)
+		return; // No data available, return and check again later
+	if (bytes == 0) // No more data to read, process has finished
 	{
 		close(_pipeFd);
 		_pipeFd = -1;
@@ -216,13 +154,61 @@ void	CgiHandler::readFromCgi()
 	}
 	else if (bytes < 0) // Error in read
 	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-			return; // No data available, return and check again later
 		g_logger.log(LOG_ERROR, "Error reading from CGI pipe: " + std::string(strerror(errno)));
-		//_finished = true;
+		_finished = true;
 		_pid = -1;
 		_statusCode = 500;
 	}
+}
+
+void	CgiHandler::readFromCgi()
+{
+	size_t bytesRead = 0;
+	int status;
+	pid_t result = 0;
+	if (_pid > 0)
+	{
+		result = waitpid(_pid, &status, WNOHANG);
+		if (result == _pid) // If the CGI process has finished waitpid returns the same PID
+		{
+			_finished = true;
+			_pid = -1;
+			_statusCode = (status == 0 ? 200 : 500); // If the process exited normally, set status code to 200, otherwise 500
+		}
+	}
+	if (_pipeFd == -1 || _finished)
+		return;
+	char buffer[4096];
+	ssize_t bytes = read(_pipeFd, buffer, sizeof(buffer));
+	if (bytes < 0)
+	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			return; // No data available, return and check again later
+		else
+		{
+			g_logger.log(LOG_ERROR, "Error reading from CGI pipe: " + std::string(strerror(errno)));
+			//_finished = true;
+			_pid = -1;
+			_statusCode = 500;
+			return;
+		}
+	}
+	while (bytes > 0)
+	{
+		bytesRead += bytes;
+		if (bytesRead > 65535) // Prevent buffer overflow, max 16KB output
+		{
+			g_logger.log(LOG_ERROR, "CGI output too large, aborting.");
+			_finished = true;
+			_pid = -1;
+			_statusCode = 504; // Gateway Timeout
+			_output.append(buffer, bytes);
+			break;
+		}
+		_output.append(buffer, bytes); // Empty data in the pipe
+		bytes = read(_pipeFd, buffer, sizeof(buffer));
+	}
+	
 }
 
 bool	CgiHandler::checkTimeout(void)
@@ -257,7 +243,7 @@ bool	CgiHandler::checkTimeout(void)
 	return (false);
 }
 
-char	**CgiHandler::_buildEnvp()
+char	**CgiHandler::buildEnvp()
 {
 	char **envp = (char **)malloc(sizeof(char *) * (_envMap.size() + 1));
 	if (!envp)
@@ -270,7 +256,7 @@ char	**CgiHandler::_buildEnvp()
 		envp[i] = strdup(str.c_str());
 		if (!envp[i])
 		{
-			_freeEnvp(envp);
+			freeEnvp(envp);
 			return NULL;
 		}
 		i++;
@@ -279,7 +265,7 @@ char	**CgiHandler::_buildEnvp()
 	return envp;
 }
 
-void	CgiHandler::_freeEnvp(char **envp)
+void	CgiHandler::freeEnvp(char **envp)
 {
 	if (!envp)
 		return;

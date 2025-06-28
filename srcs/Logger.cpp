@@ -6,11 +6,15 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/02 18:30:04 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/03 15:45:44 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/28 10:22:58 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <iostream>
+
+#include "../includes/Colors.hpp"
 #include "../includes/Logger.hpp"
+#include "../includes/Utils.hpp"
 
 Logger g_logger; // Global logger instance
 

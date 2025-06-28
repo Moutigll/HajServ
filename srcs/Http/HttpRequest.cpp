@@ -3,20 +3,21 @@
 /*                                                        :::      ::::::::   */
 /*   HttpRequest.cpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/20 21:05:28 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/27 16:59:37 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/28 11:09:17 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../includes/Http/HttpRequest.hpp"
 # include <algorithm>
 
-HttpRequest::HttpRequest()
+HttpRequest::HttpRequest(Port *port)
 	: HttpTransaction(),
 	  _parseState(PS_REQUEST_LINE),
-	  _contentLenght(0)
+	  _contentLenght(0),
+	  _port(port)
 {
 	_isComplete = false;
 }
@@ -317,8 +318,4 @@ size_t	HttpRequest::getContentLength(const std::map<std::string, std::string> &h
 
 bool HttpRequest::isComplete() const {
 	return _parseState == PS_DONE;
-}
-
-void HttpRequest::setPort(Port *port) {
-	_port = port;
 }

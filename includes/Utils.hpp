@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 23:50:18 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/28 08:49:47 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/28 10:27:03 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,25 +15,23 @@
 
 # include <cstdlib>
 # include <ctime>
-# include <fstream>
-# include <iostream>
-#include <set>
+# include <csignal>
+# include <fcntl.h>
 # include <map>
+# include <set>
 # include <sstream>
 # include <string>
 # include <sys/stat.h>
-# include <fcntl.h>
 # include <sys/time.h>
+# include <sys/types.h>
+# include <sys/wait.h>
 # include <vector>
-# include <csignal>
-#include <sys/types.h>
-#include <sys/wait.h>
 
 struct t_location
 {
 	std::string							_path;
 	std::string							_root;
-	int									_cgi_timeout;
+	int									_cgiTimeout;
 	int									_return_code;
 	std::string							_return_uri;
 	bool								_autoindex;
@@ -41,7 +39,7 @@ struct t_location
 	std::vector<std::string>			_methods;
 	std::vector<std::string>			_indexes;
 
-	t_location() :_root(""), _cgi_timeout(5), _return_code(0), _autoindex(false) {}
+	t_location() :_root(""), _cgiTimeout(5), _return_code(0), _autoindex(false) {}
 };
 
 struct t_server
@@ -131,6 +129,12 @@ bool hasDuplicates(const std::vector<T>& vec)
 	return false; // no duplicates
 }
 
+/**
+ * @brief Convert a string to a size_t byte size.
+ * Handles suffixes like 'K', 'M', 'G' for kilobytes, megabytes, and gigabytes.
+ * @param[in] value The string representing the size, e.g., "10K", "5M", "2G".
+ * @return size_t The size in bytes. Returns 0 if the input is invalid.
+ */
 size_t giveBodySize(const std::string &value);
 
 /**

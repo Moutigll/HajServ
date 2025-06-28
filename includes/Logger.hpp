@@ -6,15 +6,15 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/02 18:29:38 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/18 18:16:05 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/28 10:17:58 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef LOGGER_HPP
 #define LOGGER_HPP
 
-#include "Colors.hpp"
-#include "Utils.hpp"
+#include <fstream>
+#include <string>
 
 enum e_log_level
 {

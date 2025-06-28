@@ -3,15 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.cpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/30 14:29:56 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/28 08:49:22 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/28 10:24:51 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <iostream>
+
+#include "../includes/Colors.hpp"
 #include "../includes/Utils.hpp"
-#include "../includes/Logger.hpp"
 
 std::string trim(const std::string &s)
 {

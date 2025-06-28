@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 20:15:41 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 21:28:26 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/28 08:03:18 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,16 +15,12 @@
 
 # include <string>
 # include <map>
-# include <vector>
 # include <unistd.h>
 # include <fcntl.h>
 # include <cstring>
 # include <cstdlib>
 # include <sys/wait.h>
-# include <signal.h>
 # include <ctime>
-# include <iostream>
-#include "Logger.hpp"
 
 /**
  * @class CgiHandler
@@ -102,12 +98,21 @@ class CgiHandler {
 		 * for execve(). Each entry is formatted as "KEY=VALUE".
 		 * 
 		 * @return char** Allocated environment array, or NULL on allocation failure
-		 * @warning The caller is responsible for freeing the returned array with _freeEnvp()
-		 * @see _freeEnvp
+		 * @warning The caller is responsible for freeing the returned array with freeEnvp()
+		 * @see freeEnvp
 		 */
-		char							**_buildEnvp();
+		char							**buildEnvp();
 
-		void							_freeEnvp(char **envp);
+		/**
+		 * @brief Handles errors during reading from the CGI output pipe
+		 * 
+		 * Logs the error and sets the status code to 500. Cleans up the process state.
+		 * 
+		 * @param bytes Number of bytes read before the error occurred
+		 */
+		void 							handleReadError(int bytes);
+
+		void							freeEnvp(char **envp);
 };
 
 #endif

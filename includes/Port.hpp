@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 15:11:40 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/19 18:42:28 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/28 10:48:54 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,8 +19,7 @@
 # include <unistd.h>
 # include <cstring>
 
-# include "Logger.hpp"
-# include "Config.hpp"
+# include "Utils.hpp"
 
 /**
  * @class Port
@@ -79,7 +78,7 @@ class Port
 
 	private:
 		int							_port;
-		int							_socket_fd;
+		int							_socketFd;
 		std::vector<t_server *>		_servers;
 		std::vector<std::string>	_hosts;
 

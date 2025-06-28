@@ -3,16 +3,18 @@
 /*                                                        :::      ::::::::   */
 /*   Config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/28 08:52:37 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/28 10:21:37 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <iostream>
+
+#include "../includes/Colors.hpp"
 #include "../includes/Config.hpp"
 #include "../includes/Logger.hpp"
-#include <iostream>
 
 Config::Config()
 	: _finished(false), _log_connections(false), _log_request(false), _log_console(false), _log_file(""), _log_level("none"), _servers()
@@ -411,7 +413,7 @@ bool Config::parseLocation(std::ifstream &file, int &line_number, t_location &lo
 			loc._indexes.push_back(value);
 			continue;
 		}
-		loc._cgi_timeout = atoi(value.c_str());
+		loc._cgiTimeout = atoi(value.c_str());
 	}
 	std::cerr << RED << "Location parsing finished without the end of bracket of server which is '}'." << RESET << std::endl;
 	return false;
@@ -502,7 +504,7 @@ static void printLocationStr(std::string &out, const t_location &loc, size_t ind
 	out += std::string("\t\t") + BRIGHT_CYAN "Path: " RESET + BRIGHT_WHITE + loc._path + RESET + "\n";
 	out += std::string("\t\t") + BRIGHT_CYAN "Autoindex: " RESET + (loc._autoindex ? BRIGHT_GREEN "on" RESET : BRIGHT_RED "off" RESET) + "\n";
 	out += std::string("\t\t") + BRIGHT_CYAN "Root: " RESET + BRIGHT_WHITE + loc._root + RESET + "\n";
-	out += std::string("\t\t") + BRIGHT_CYAN "Cgi Timeout: " RESET + BRIGHT_WHITE + to_string(loc._cgi_timeout) + RESET + "\n";
+	out += std::string("\t\t") + BRIGHT_CYAN "Cgi Timeout: " RESET + BRIGHT_WHITE + to_string(loc._cgiTimeout) + RESET + "\n";
 
 	if (loc._return_code != 0)
 	{

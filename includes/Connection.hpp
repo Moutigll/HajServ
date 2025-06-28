@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Connection.hpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:48:52 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/26 03:55:22 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/28 11:00:00 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -62,18 +62,29 @@ class Connection
 		 */
 		bool	parseRequest(char *buffer);
 
-		t_buffer	getReadBuffer(void);
+		/**
+		 * @brief Get the write buffer from the HttpResponse object.
+		 * @return The write buffer containing the HTTP request data.
+		 * @note if the buffer is empty on purpoe its size will be 4242.
+		 */
+		t_buffer	getWriteBuffer(void);
+
+		/**
+		 * @brief Reset the write buffer.
+		 * This fuction must be called when a buffer is successfully sent
+		 * in order to receave new data.
+		 */
 		void		successWrite(void);
 	private:
-		int					_fd;
-		Port				*_port;
-		e_ConnectionState	_state;
-		t_server			*_server;
+		int					_fd; // File descriptor for the client connection
+		Port				*_port; // Pointer to the Port object this connection belongs to
+		e_ConnectionState	_state; // Current state of the connection (WRITING, READING, DONE)
+		t_server			*_server; // Pointer to the server configuration for this connection
 		bool				_closed;
-		t_buffer			_writeBuffer;
-		std::time_t			_lastActivity;
-		HttpTransaction		*_httpTransaction;
-		HttpRequest			*_httpRequest;
+		t_buffer			_writeBuffer; // Buffer for writing data to the client
+		std::time_t			_lastActivity; // Timestamp of the last activity on this connection
+		HttpTransaction		*_httpTransaction; // Poiter to the current HTTP transaction: HttpRequest or HttpResponse
+		HttpRequest			*_httpRequest; // The last complete HTTP request received on this connection
 		
 		/**
 		 * @brief Switch the connection to an error state.
