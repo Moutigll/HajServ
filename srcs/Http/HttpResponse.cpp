@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 02:21:22 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/29 03:30:04 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@ HttpResponse::HttpResponse(const t_server &server)
 	  _readFd(-1),
 	  _isHeadersSent(false),
 	  _ErrorStatus(),
+	  _cgiHandler(NULL),
 	  _isCgiComplete(true),
 	  _requestHeaders()
 {
@@ -96,15 +97,13 @@ HttpResponse::~HttpResponse() {
 
 void	HttpResponse::construct()
 {	
-	if (!_body.empty())
-	{	
-		if (_status >= 400)
-		{
-			_ErrorStatus.setServer(_server);
-			buildErrorPage();
-		}
-		_response += "Content-Length: " + to_string(_body.size()) + "\r\n";
+	if (_status >= 400)
+	{
+		_ErrorStatus.setServer(_server);
+		buildErrorPage();
 	}
+	if (!_body.empty())
+		_response += "Content-Length: " + to_string(_body.size()) + "\r\n";
 	else
 	{
 		setFileHeaders();
@@ -566,7 +565,6 @@ t_buffer	HttpResponse::sendResponse()
 	_isComplete = false;
 	if (!_isHeadersSent)
 	{
-		
 		if (!_isCgiComplete)
 			handleCgi();
 		if (!_isCgiComplete) // If the CGI has not finished yet, we cannot send the response

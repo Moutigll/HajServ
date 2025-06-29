@@ -19,6 +19,9 @@ if [ -z "$COLOR" ]; then
 fi
 
 cat <<EOF
+Content-Type: text/html; charset=UTF-8
+Cache-Control: no-cache
+
 <html>
 <head>
 <title>Color Switcher</title>

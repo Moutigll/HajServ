@@ -6,12 +6,13 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/20 21:05:28 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/28 11:09:17 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 03:32:30 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../../includes/Http/HttpRequest.hpp"
 # include <algorithm>
+#include <iostream>
 
 HttpRequest::HttpRequest(Port *port)
 	: HttpTransaction(),
@@ -88,19 +89,15 @@ int HttpRequest::parse(const char *buffer)
 	
 	// If needed, parse the body
 	if (_parseState == PS_BODY) {
-		if (_accum.size() < _contentLenght)
+		if (_accum.size() < static_cast<size_t>(_contentLenght))
 			return 0;
-		std::string body = _accum.substr(0, _contentLenght);
-		if (body.size() != _contentLenght) {
-			_status = 400; // Bad Request: Content-Length mismatch
-			_parseState = PS_ERROR;
-			return -1;
-		}
+		_body = _accum.substr(0, _contentLenght);
 		_accum.erase(0, _contentLenght);
-		_parseState = PS_DONE;
 		_isComplete = true;
+		_parseState = PS_DONE;
 		return 1;
 	}
+
 
 	return 0;
 }
@@ -167,13 +164,7 @@ bool	HttpRequest::parseRequestLine(const std::string &line)
 		_status = 400; // Bad Request: incomplete request line
 		return false;
 	}
-
-	if (protocol != "HTTP/1.0" && protocol != "HTTP/1.1")
-	{
-		_status = 505; // HTTP Version Not Supported
-		return false;
-	}
-
+	
 	// Methods autorized by RFC
 	const char* rfcMethods[] = {
 		"GET", "POST", "PUT", "DELETE",
@@ -216,6 +207,12 @@ bool	HttpRequest::parseRequestLine(const std::string &line)
 	if (_uri.empty() || _uri[0] != '/' || _uri.find("..") != std::string::npos) // URI must start with '/' and not contain '..'
 	{
 		_status = 400; // Bad Request: invalid request URI
+		return false;
+	}
+
+	if (protocol != "HTTP/1.0" && protocol != "HTTP/1.1")
+	{
+		_status = 505; // HTTP Version Not Supported
 		return false;
 	}
 

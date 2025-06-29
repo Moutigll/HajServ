@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:12 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/28 11:14:01 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 03:53:41 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -131,7 +131,6 @@ bool Connection::parseRequest(char *readBuffer)
 	{
         switchToErrorState(request->getStatus());
         delete request;
-        this->_httpTransaction = NULL;
         return true;
     } else if (status == 0) { // Request is not complete, we need more data
         this->_state = READING;
@@ -145,6 +144,7 @@ bool Connection::parseRequest(char *readBuffer)
         switchToErrorState(500);
         return false;
     }
+	request->log();
 
     this->_state = WRITING;
     return true;

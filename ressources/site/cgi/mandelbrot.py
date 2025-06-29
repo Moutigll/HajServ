@@ -28,6 +28,11 @@ b64 = base64.b64encode(buf.getvalue()).decode('ascii')
 
 now = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
 
+# --- headers ---
+print("Content-Type: text/html")
+print("Cache-Control: no-cache")
+print()  # End of headers
+
 # HTML response
 print(f"""<!DOCTYPE html>
 <html lang="en">

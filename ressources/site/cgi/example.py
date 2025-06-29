@@ -36,8 +36,6 @@ html_content = f"""
 
 # --- headers ---
 print("Content-Type: text/html")
-print("Server: HajServ/1.0")
-print("Content-Length: {}".format(len(html_content)))
 print("Cache-Control: no-cache")
 print()  # End of headers
 

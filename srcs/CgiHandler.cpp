@@ -6,12 +6,13 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 21:14:48 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/28 08:06:18 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 02:01:09 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/CgiHandler.hpp"
 #include "../includes/Logger.hpp"
+#include <unistd.h>
 
 CgiHandler::CgiHandler()
 	: _timeout(5),
@@ -84,12 +85,24 @@ int	CgiHandler::execute()
 	{
 		dup2(pipeIn[0], STDIN_FILENO);
 		dup2(pipeOut[1], STDOUT_FILENO);
+
 		close(pipeIn[1]);
 		close(pipeOut[0]);
-		
+		close(pipeIn[0]);
+		close(pipeOut[1]);
+
+		std::string	scriptDir = _scriptPath.substr(0, _scriptPath.find_last_of('/'));
+		std::string	scriptName = _scriptPath.substr(_scriptPath.find_last_of('/') + 1);
+
+		if (!scriptDir.empty() && chdir(scriptDir.c_str()) == -1) // Change to script directory
+		{
+			g_logger.log(LOG_ERROR, "Failed to change directory to: " + scriptDir + " - " + std::string(strerror(errno)));
+			exit(1);
+		}
+
 		char *argv[] = {
 			const_cast<char *>(_cgiPath.c_str()),
-			const_cast<char *>(_scriptPath.c_str()),
+			const_cast<char *>(scriptName.c_str()),
 			NULL
 		};
 		char **envp = buildEnvp();

@@ -1,7 +1,8 @@
 <?php
 // Simple CGI PHP script
 
-// Output some HTML content
+echo "Content-Type: text/html\r\n";
+echo "\r\n"; // End of headers
 echo "<html><head><title>CGI Test</title></head><body>";
 echo "<h1>Hello from PHP CGI script!</h1>";
 echo "<p>The current server time is: " . date('Y-m-d H:i:s') . "</p>";

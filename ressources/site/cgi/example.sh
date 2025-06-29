@@ -3,6 +3,9 @@
 
 # Contenu HTML
 cat <<EOF
+Content-Type: text/html; charset=UTF-8
+Cache-Control: no-cache
+
 <!DOCTYPE html>
 <html>
 <head>

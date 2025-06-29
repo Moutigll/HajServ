@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 00:51:57 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/28 10:53:48 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 03:20:25 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,9 @@
 
 void HttpResponse::buildErrorPage()
 {
+	_filePath = _ErrorStatus.getFilePath();
+	if (!_filePath.empty() && access(_filePath.c_str(), R_OK) == 0)
+		return;
 	_body.clear();
 	_body = "<!DOCTYPE html>\n"
 			"<html lang=\"en\">\n"
