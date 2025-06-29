@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:26:55 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 02:20:08 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/29 04:57:03 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,6 +79,7 @@ class HttpResponse : public HttpTransaction {
 		CgiHandler	*_cgiHandler; // Handler for CGI execution
 		bool		_isCgiComplete; // Track if CGI execution is complete
 		std::map<std::string, std::string> _requestHeaders; // HTTP headers to be sent
+		std::string _requestBody; // Body of the request, if applicable
 
 
 		/**

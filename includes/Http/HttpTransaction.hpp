@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpTransaction.hpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:11:03 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/27 16:58:28 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/29 04:57:54 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@ class HttpTransaction {
 		std::string	getMethod() const;
 		std::string	getRequest() const;
 		std::string	getProtocol() const;
-		std::string getTBody() const;
+		std::string getBody() const;
 		std::map<std::string, std::string> getHeaders() const;
 		bool		isConnectionKeepAlive() const;
 		std::string getQuery() const;

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   GetFiles.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 02:22:13 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 02:22:07 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/29 04:49:40 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 
 #include "../../includes/Http/GetFiles.hpp"
 #include "../../includes/Http/HttpResponse.hpp"
+#include <fstream>
 #include <iostream>
 
 t_location	*findBestLocation(t_server *server, const std::string &uri)
@@ -247,18 +248,42 @@ int	deleteFile(const std::string &filePath)
 
 	ret = stat(filePath.c_str(), &s_stat);
 	if (ret != 0)
-		return 404; // Not Found
+		return 204; // Not Found
 
 	if (!S_ISREG(s_stat.st_mode))
 		return 403; // Forbidden, not a regular file
 
 	ret = access(filePath.c_str(), W_OK);
 	if (ret != 0)
-		return 403; // Forbidden, pas de droit en écriture
+		return 403; // Forbidden, file not writable
 
 	ret = unlink(filePath.c_str());
 	if (ret != 0)
-		return 500; // Internal Server Error, suppression échouée
+		return 500; // Internal Server Error, could not delete file
 
-	return 200; // OK, fichier supprimé
+	return 200; // OK, file deleted successfully
 }
+
+int postFile(const std::string &body, const std::string &target_path)
+{
+	struct stat st;
+
+	if (stat(target_path.c_str(), &st) == 0)
+		return 409; // Conflict (file already exists)
+
+
+	std::ofstream out(target_path.c_str(), std::ios::binary);
+	if (!out.is_open())
+		return 500; // Internal Server Error
+
+	out.write(body.c_str(), body.size());
+	if (!out.good()) {
+		out.close();
+		unlink(target_path.c_str()); // Cleanup if write failed
+		return 500;
+	}
+
+	out.close();
+	return 201; // Created
+}
+

@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 02:24:15 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 00:37:13 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 04:55:22 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,6 +47,8 @@ bool		checkMethod(const std::string &method, const std::vector<std::string> &all
 std::string	generateAutoindexPage(const std::string &uri, const std::string &directoryPath);
 
 int	deleteFile(const std::string &filePath);
+
+int postFile(const std::string &body, const std::string &target_path);
 
 static const std::string svgIconFolder =
 	"<svg class=\"icon\" viewBox=\"0 0 24 24\" width=\"24\" height=\"24\">\n"

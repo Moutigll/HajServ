@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/20 21:05:28 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 03:32:30 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 04:23:14 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,6 +81,11 @@ int HttpRequest::parse(const char *buffer)
 		_accum.erase(0, pos + 4); // remove the headers including the last \r\n\r\n
 		_contentLenght = getContentLength(_headers);
 		_parseState = (_contentLenght > 0 ? PS_BODY : PS_DONE); // If Content-Length is 0, we can directly go to DONE state
+		if (_contentLenght > _server->_maxBodySize) {
+			_status = 413;
+			_parseState = PS_ERROR;
+			return -1;
+		}
 		if (_parseState == PS_DONE) {
 			_isComplete = true;
 			return 1;
@@ -89,6 +94,12 @@ int HttpRequest::parse(const char *buffer)
 	
 	// If needed, parse the body
 	if (_parseState == PS_BODY) {
+		if (_method == "GET" || _method == "DELETE") {
+			_isComplete = true;
+			_parseState = PS_DONE;
+			_status = 400; // Bad Request: GET and DELETE methods should not have a body
+			return -1;
+		}
 		if (_accum.size() < static_cast<size_t>(_contentLenght))
 			return 0;
 		_body = _accum.substr(0, _contentLenght);

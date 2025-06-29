@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpTransaction.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:16:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/27 16:58:12 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/29 04:57:59 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,7 +90,7 @@ bool HttpTransaction::isConnectionKeepAlive() const {
 	return _connectionKeepAlive;
 }
 
-std::string HttpTransaction::getTBody() const {
+std::string HttpTransaction::getBody() const {
 	return _body;
 }
 

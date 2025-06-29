@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 03:30:04 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 05:21:20 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,8 @@ HttpResponse::HttpResponse(const t_server &server)
 	  _ErrorStatus(),
 	  _cgiHandler(NULL),
 	  _isCgiComplete(true),
-	  _requestHeaders()
+	  _requestHeaders(),
+	  _requestBody()
 {
 	_status = 200;
 	_protocol = "HTTP/1.1";
@@ -49,6 +50,7 @@ HttpResponse::HttpResponse(const t_server &server, HttpRequest &request)
 	this->_connectionKeepAlive = request.isConnectionKeepAlive();
 	this->_headers.clear(); // Clear headers from the request, we will build our own response headers
 	this->_requestHeaders = request.getHeaders();
+	this->_requestBody = request.getBody();
 }
 
 HttpResponse::HttpResponse(const HttpResponse &other)
@@ -424,12 +426,6 @@ void HttpResponse::getFile()
 	}
 	
 	// 6) if the URI does not end with slash, we assume it's a file
-	if (!exists || !S_ISREG(st.st_mode))
-	{
-		setStatus(404);
-		return;
-	}
-
 	if (_method == "DELETE")
 	{
 		g_logger.log(LOG_INFO, "DELETE request for file: " + full);
@@ -444,10 +440,29 @@ void HttpResponse::getFile()
 		// File is a CGI script: create the CGI handler
 		std::map<std::string, std::string> envMap;
 		generateEnvMap(full, envMap);
-		_cgiHandler = new CgiHandler(cgiBin, full, _body, envMap, loc->_cgiTimeout);
+		_cgiHandler = new CgiHandler(cgiBin, full, _requestBody, envMap, loc->_cgiTimeout);
 		_cgiHandler->execute();
 		_isCgiComplete = false;
 		setStatus(200);
+		return;
+	}
+
+	if (_method == "POST" || _method == "PUT")
+	{
+		if (_requestBody.empty())
+		{
+			g_logger.log(LOG_ERROR, "POST/PUT request without body for file: " + full);
+			setStatus(400); // Bad Request
+			return;
+		}
+		g_logger.log(LOG_INFO, "POST/PUT request for file: " + full);
+		setStatus(postFile(_requestBody, full));
+		return;
+	}
+
+	if (!exists || !S_ISREG(st.st_mode))
+	{
+		setStatus(404);
 		return;
 	}
 

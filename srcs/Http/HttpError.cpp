@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/21 15:13:09 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/25 17:23:20 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 03:58:43 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,7 +90,7 @@ std::string	HttpError::getFilePath( void )
 	if (it != _server._errors.end())
 	{
 		if (errorPage[errorPage.length() - 1] != '/')
-		errorPage += '/';
+			errorPage += '/';
 		return errorPage + it->second;
 	}
 	return "";
