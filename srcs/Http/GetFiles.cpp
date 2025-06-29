@@ -6,7 +6,7 @@
 /*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 02:22:13 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 02:04:41 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/06/29 02:22:07 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,7 @@
 
 #include "../../includes/Http/GetFiles.hpp"
 #include "../../includes/Http/HttpResponse.hpp"
+#include <iostream>
 
 t_location	*findBestLocation(t_server *server, const std::string &uri)
 {
@@ -83,20 +84,22 @@ void HttpResponse::generateEnvMap(const std::string &filepath, std::map<std::str
 		envMap["QUERY_STRING"] = "";
 
 	if (_method == "POST") {
-        if (_headers.count("Content-Type"))
-            envMap["CONTENT_TYPE"] = _headers["Content-Type"];
-        if (_headers.count("Content-Length"))
-            envMap["CONTENT_LENGTH"] = _headers["Content-Length"];
+        if (_requestHeaders.count("Content-Type"))
+            envMap["CONTENT_TYPE"] = _requestHeaders["Content-Type"];
+        if (_requestHeaders.count("Content-Length"))
+            envMap["CONTENT_LENGTH"] = _requestHeaders["Content-Length"];
     }
 	envMap["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
 	envMap["CONTENT_LENGTH"] = "0";
 
 	// Additional headers
-	for (std::map<std::string,std::string>::const_iterator it = _headers.begin();
-         it != _headers.end(); ++it)
+	for (std::map<std::string,std::string>::const_iterator it = _requestHeaders.begin();
+         it != _requestHeaders.end(); ++it)
     {
         const std::string &key = it->first;
         const std::string &val = it->second;
+		
+		std::cout << "key: " << key << " val: " << val << std::endl;
 
         if (key == "Cookie")
 		{

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 01:13:44 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 02:21:22 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,8 @@ HttpResponse::HttpResponse(const t_server &server)
 	  _readFd(-1),
 	  _isHeadersSent(false),
 	  _ErrorStatus(),
-	  _isCgiComplete(true)
+	  _isCgiComplete(true),
+	  _requestHeaders()
 {
 	_status = 200;
 	_protocol = "HTTP/1.1";
@@ -46,6 +47,7 @@ HttpResponse::HttpResponse(const t_server &server, HttpRequest &request)
 	this->_protocol = request.getProtocol();
 	this->_connectionKeepAlive = request.isConnectionKeepAlive();
 	this->_headers.clear(); // Clear headers from the request, we will build our own response headers
+	this->_requestHeaders = request.getHeaders();
 }
 
 HttpResponse::HttpResponse(const HttpResponse &other)
