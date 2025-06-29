@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Utils.hpp                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 23:50:18 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/29 00:58:24 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 01:21:34 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,10 +36,11 @@ struct t_location
 	std::string							_return_uri;
 	bool								_autoindex;
 	std::map<std::string, std::string>	_cgi; // Extension, CGI path
+	size_t								_cgiMaxBodySize;
 	std::vector<std::string>			_methods;
 	std::vector<std::string>			_indexes;
 
-	t_location() :_root(""), _cgiTimeout(5), _return_code(0), _return_uri(""), _autoindex(false) {}
+	t_location() :_root(""), _cgiTimeout(5), _return_code(0), _return_uri(""), _autoindex(false), _cgiMaxBodySize(4096) {}
 };
 
 struct t_server

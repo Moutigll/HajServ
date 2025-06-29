@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Config.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/05/21 14:36:47 by etaquet           #+#    #+#             */
-/*   Updated: 2025/06/28 10:21:37 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 01:44:14 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -149,9 +149,9 @@ bool Config::defaultingServer(t_server &server)
 			for (unsigned long j = 0; j < server._methods.size(); j++)
 				server._locations[i]._methods.push_back(server._methods[j]);
 		}
-		if (server._locations[i]._root.empty() && server._root.empty())
+		if (server._locations[i]._root.empty() && server._locations[i]._return_uri.empty() && server._root.empty())
 		{
-			std::cerr << RED << "Error: Server '" << i + 1 << "' is missing root directive." << RESET << std::endl;
+			std::cerr << RED << "Error: Location '" << server._locations[i]._path << "' is missing root directive." << RESET << std::endl;
 			return false;
 		}
 		else if (server._locations[i]._root.empty())
@@ -197,8 +197,9 @@ bool Config::parseServer(std::ifstream &file, int &line_number)
 		{
 			t_location location;
 			std::string value = getSecondElem(line);
+
 			if (!value.empty())
-				location._path = value;
+				location._path = (back(value) == '/') ? value : value += '/';
 			if (!parseLocation(file, line_number, location))
 				return false;
 			if (location._path.empty())
@@ -413,6 +414,17 @@ bool Config::parseLocation(std::ifstream &file, int &line_number, t_location &lo
 			loc._indexes.push_back(value);
 			continue;
 		}
+		if (key == "fastcgi_max_body_size")
+		{
+			size_t size = giveBodySize(value);
+			if (size == 0)
+			{
+				std::cerr << RED << "Error: Invalid fastcgi_max_body_size value '" << value << "' at line " << line_number << "." << RESET << std::endl;
+				return false;
+			}
+			loc._cgiMaxBodySize = size;
+			continue;
+		}
 		loc._cgiTimeout = atoi(value.c_str());
 	}
 	std::cerr << RED << "Location parsing finished without the end of bracket of server which is '}'." << RESET << std::endl;
@@ -505,6 +517,7 @@ static void printLocationStr(std::string &out, const t_location &loc, size_t ind
 	out += std::string("\t\t") + BRIGHT_CYAN "Autoindex: " RESET + (loc._autoindex ? BRIGHT_GREEN "on" RESET : BRIGHT_RED "off" RESET) + "\n";
 	out += std::string("\t\t") + BRIGHT_CYAN "Root: " RESET + BRIGHT_WHITE + loc._root + RESET + "\n";
 	out += std::string("\t\t") + BRIGHT_CYAN "Cgi Timeout: " RESET + BRIGHT_WHITE + to_string(loc._cgiTimeout) + RESET + "\n";
+	out += std::string("\t\t") + BRIGHT_CYAN "Cgi Max Body Size: " RESET + BRIGHT_WHITE + to_string(loc._cgiMaxBodySize) + RESET + "\n";
 
 	if (loc._return_code != 0)
 	{

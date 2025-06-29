@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   GetFiles.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 02:22:13 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 00:37:17 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 02:04:41 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -73,7 +73,8 @@ void HttpResponse::generateEnvMap(const std::string &filepath, std::map<std::str
 	envMap["SERVER_PROTOCOL"] = _protocol;
 	envMap["REQUEST_METHOD"] = _method;
 	envMap["SCRIPT_FILENAME"] = filepath;
-	envMap["SCRIPT_NAME"] = _filePath;
+	size_t pos = filepath.find_last_of('/');
+	envMap["SCRIPT_NAME"] = (pos == std::string::npos) ? filepath : filepath.substr(pos + 1);
 	envMap["SERVER_SOFTWARE"] = VERSION;
 
 	if (!_query.empty())
@@ -81,24 +82,51 @@ void HttpResponse::generateEnvMap(const std::string &filepath, std::map<std::str
 	else
 		envMap["QUERY_STRING"] = "";
 
-	// Content
-	// if (_method == "POST")
-	// {
-	// 	envMap["CONTENT_LENGTH"] = "0";
-	// 	envMap["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
-	// }
-	// else
+	if (_method == "POST") {
+        if (_headers.count("Content-Type"))
+            envMap["CONTENT_TYPE"] = _headers["Content-Type"];
+        if (_headers.count("Content-Length"))
+            envMap["CONTENT_LENGTH"] = _headers["Content-Length"];
+    }
 	envMap["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
 	envMap["CONTENT_LENGTH"] = "0";
 
 	// Additional headers
-	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it) {
-		std::string key = it->first;
-		for (size_t i = 0; i < key.length(); ++i)
-			if (key[i] == '-') key[i] = '_';
+	for (std::map<std::string,std::string>::const_iterator it = _headers.begin();
+         it != _headers.end(); ++it)
+    {
+        const std::string &key = it->first;
+        const std::string &val = it->second;
 
-		envMap["HTTP_" + key] = it->second;
-	}
+        if (key == "Cookie")
+		{
+            envMap["HTTP_COOKIE"] = val;
+
+            size_t pos = 0;
+            while (pos < val.size())
+			{
+                size_t semi = val.find(';', pos);
+                std::string pair = val.substr(pos, (semi==std::string::npos ? std::string::npos : semi-pos));
+                if (!pair.empty() && pair[0]==' ') pair.erase(0,1);
+                size_t eq = pair.find('=');
+                if (eq != std::string::npos)
+				{
+                    std::string cname = pair.substr(0, eq);
+                    std::string cval  = pair.substr(eq+1);
+                    envMap[cname] = cval;
+                }
+                if (semi == std::string::npos) break;
+                pos = semi + 1;
+            }
+            continue;
+        }
+
+        // Other headers: HTTP_<NAME>
+        std::string hkey = key;
+        for (size_t i = 0; i < hkey.length(); ++i)
+            if (hkey[i] == '-') hkey[i] = '_';
+        envMap["HTTP_" + hkey] = val;
+    }
 }
 
 static std::string	uriEncode(const std::string &value)
