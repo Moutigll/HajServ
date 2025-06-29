@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 05:21:20 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 05:33:01 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,8 +17,8 @@
 HttpResponse::HttpResponse(const t_server &server)
 	: HttpTransaction(),
 	  _server(server),
-	  _response(),
-	  _filePath(),
+	  _response(""),
+	  _filePath(""),
 	  _readFd(-1),
 	  _isHeadersSent(false),
 	  _ErrorStatus(),
@@ -33,15 +33,17 @@ HttpResponse::HttpResponse(const t_server &server)
 }
 
 HttpResponse::HttpResponse(const t_server &server, HttpRequest &request)
-	: 
+	: HttpTransaction(),
 	  _server(server),
-	  _response(),
-	  _filePath(),
+	  _response(""),
+	  _filePath(""),
 	  _readFd(-1),
 	  _isHeadersSent(false),
 	  _ErrorStatus(),
 	  _cgiHandler(NULL),
-	  _isCgiComplete(true)
+	  _isCgiComplete(true),
+	  _requestHeaders(),
+	  _requestBody()
 {
 	this->_method = request.getMethod();
 	this->_uri = request.getRequest();
@@ -51,18 +53,26 @@ HttpResponse::HttpResponse(const t_server &server, HttpRequest &request)
 	this->_headers.clear(); // Clear headers from the request, we will build our own response headers
 	this->_requestHeaders = request.getHeaders();
 	this->_requestBody = request.getBody();
+	this->_status = 200;
+	this->_isComplete = false;
 }
 
 HttpResponse::HttpResponse(const HttpResponse &other)
-	: HttpTransaction(other),
-	  _server(other._server),
-	  _response(other._response),
-	  _filePath(other._filePath),
-	  _readFd(other._readFd),
-	  _isHeadersSent(other._isHeadersSent),
-	  _ErrorStatus(other._ErrorStatus),
-	  _cgiHandler(other._cgiHandler)
-{}
+    : HttpTransaction(other),
+      _server(other._server),
+      _response(other._response),
+      _filePath(other._filePath),
+      _readFd(other._readFd),
+      _isHeadersSent(other._isHeadersSent),
+      _ErrorStatus(other._ErrorStatus),
+      _cgiHandler(NULL), // Don't copy pointer directly!
+      _isCgiComplete(other._isCgiComplete),
+      _requestHeaders(other._requestHeaders),
+      _requestBody(other._requestBody)
+{
+    if (other._cgiHandler)
+        _cgiHandler = new CgiHandler(*other._cgiHandler);
+}
 
 HttpResponse &HttpResponse::operator=(const HttpResponse &other) {
 	if (this != &other) {

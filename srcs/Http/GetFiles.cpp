@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   GetFiles.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 02:22:13 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 04:49:40 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 05:41:21 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,15 +83,15 @@ void HttpResponse::generateEnvMap(const std::string &filepath, std::map<std::str
 		envMap["QUERY_STRING"] = _query;
 	else
 		envMap["QUERY_STRING"] = "";
-
-	if (_method == "POST") {
+	
+	envMap["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
+	envMap["CONTENT_LENGTH"] = "0";
+	if (_method == "POST" && !_requestBody.empty()) {
         if (_requestHeaders.count("Content-Type"))
             envMap["CONTENT_TYPE"] = _requestHeaders["Content-Type"];
         if (_requestHeaders.count("Content-Length"))
-            envMap["CONTENT_LENGTH"] = _requestHeaders["Content-Length"];
+			envMap["CONTENT_LENGTH"] = _requestHeaders["Content-Length"];
     }
-	envMap["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
-	envMap["CONTENT_LENGTH"] = "0";
 
 	// Additional headers
 	for (std::map<std::string,std::string>::const_iterator it = _requestHeaders.begin();
@@ -99,7 +99,7 @@ void HttpResponse::generateEnvMap(const std::string &filepath, std::map<std::str
     {
         const std::string &key = it->first;
         const std::string &val = it->second;
-		
+
 		std::cout << "key: " << key << " val: " << val << std::endl;
 
         if (key == "Cookie")
