@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   GetFiles.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: moutig <moutig@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 02:22:13 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 05:41:21 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/07/17 20:56:11 by moutig           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -99,8 +99,6 @@ void HttpResponse::generateEnvMap(const std::string &filepath, std::map<std::str
     {
         const std::string &key = it->first;
         const std::string &val = it->second;
-
-		std::cout << "key: " << key << " val: " << val << std::endl;
 
         if (key == "Cookie")
 		{

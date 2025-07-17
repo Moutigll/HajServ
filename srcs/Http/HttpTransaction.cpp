@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpTransaction.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: moutig <moutig@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:16:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 04:57:59 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/07/02 21:19:02 by moutig           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -96,4 +96,8 @@ std::string HttpTransaction::getBody() const {
 
 std::map<std::string, std::string> HttpTransaction::getHeaders() const {
 	return _headers;
+}
+
+t_server *HttpTransaction::getServer() const {
+	return _server;
 }

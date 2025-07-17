@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Connection.cpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: moutig <moutig@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:12 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 03:53:41 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/07/02 21:20:20 by moutig           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,6 +138,7 @@ bool Connection::parseRequest(char *readBuffer)
     }
 	// If we reach here, the request is complete
     this->_httpRequest = request;
+	this->_server = request->getServer();
     this->_httpTransaction = new HttpResponse(*this->_server, *this->_httpRequest);
     if (this->_httpTransaction == NULL)
 	{

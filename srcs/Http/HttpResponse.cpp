@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
+/*   By: moutig <moutig@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 05:33:01 by etaquet          ###   ########.fr       */
+/*   Updated: 2025/07/17 20:56:23 by moutig           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -323,7 +323,6 @@ void	HttpResponse::setFileHeaders() {
 std::string HttpResponse::isCgiFile(const t_location *loc, const std::string &filepath)
 {
 	struct stat st;
-
 	// Check file exists and is regular
 	if (stat(filepath.c_str(), &st) != 0 || !S_ISREG(st.st_mode))
 	{
@@ -411,6 +410,17 @@ void HttpResponse::getFile()
 			idx += loc->_indexes[i];
 			if (stat(idx.c_str(), &st) == 0 && S_ISREG(st.st_mode))
 			{
+				std::string cgiBin = isCgiFile(loc, idx);
+				if (!cgiBin.empty())
+				{
+					std::map<std::string, std::string> envMap;
+					generateEnvMap(idx, envMap);
+					_cgiHandler = new CgiHandler(cgiBin, idx, _requestBody, envMap, loc->_cgiTimeout);
+					_cgiHandler->execute();
+					_isCgiComplete = false;
+					setStatus(200);
+					return;
+				}
 				_filePath = idx;
 				setStatus(200);
 				return;
