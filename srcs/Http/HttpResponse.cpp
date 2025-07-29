@@ -6,7 +6,7 @@
 /*   By: moutig <moutig@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/07/17 20:56:23 by moutig           ###   ########.fr       */
+/*   Updated: 2025/07/29 18:44:31 by moutig           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -467,8 +467,15 @@ void HttpResponse::getFile()
 		return;
 	}
 
-	if (_method == "POST" || _method == "PUT")
+	if (_method == "POST" || _method == "PUT") 
 	{
+		if (!loc->_cgi.empty()) // Strict policy no file creation allowed if any cgi exist in this location
+		// !!! Don't create a location with post and another with cgi in the same folder/sub folder, you've been warned !!!
+		{
+			g_logger.log(LOG_ERROR, "POST/PUT request for CGI file: " + full);
+			setStatus(403);
+			return;
+		}
 		if (_requestBody.empty())
 		{
 			g_logger.log(LOG_ERROR, "POST/PUT request without body for file: " + full);
