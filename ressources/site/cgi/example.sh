@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 # Contenu HTML
 cat <<EOF
 Content-Type: text/html; charset=UTF-8

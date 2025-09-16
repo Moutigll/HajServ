@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpResponse.cpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: moutig <moutig@student.42.fr>              +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:40:42 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/07/29 18:44:31 by moutig           ###   ########.fr       */
+/*   Updated: 2025/09/16 19:29:17 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -323,6 +323,7 @@ void	HttpResponse::setFileHeaders() {
 std::string HttpResponse::isCgiFile(const t_location *loc, const std::string &filepath)
 {
 	struct stat st;
+
 	// Check file exists and is regular
 	if (stat(filepath.c_str(), &st) != 0 || !S_ISREG(st.st_mode))
 	{
@@ -410,17 +411,6 @@ void HttpResponse::getFile()
 			idx += loc->_indexes[i];
 			if (stat(idx.c_str(), &st) == 0 && S_ISREG(st.st_mode))
 			{
-				std::string cgiBin = isCgiFile(loc, idx);
-				if (!cgiBin.empty())
-				{
-					std::map<std::string, std::string> envMap;
-					generateEnvMap(idx, envMap);
-					_cgiHandler = new CgiHandler(cgiBin, idx, _requestBody, envMap, loc->_cgiTimeout);
-					_cgiHandler->execute();
-					_isCgiComplete = false;
-					setStatus(200);
-					return;
-				}
 				_filePath = idx;
 				setStatus(200);
 				return;
@@ -467,25 +457,30 @@ void HttpResponse::getFile()
 		return;
 	}
 
-	if (_method == "POST" || _method == "PUT") 
-	{
-		if (!loc->_cgi.empty()) // Strict policy no file creation allowed if any cgi exist in this location
-		// !!! Don't create a location with post and another with cgi in the same folder/sub folder, you've been warned !!!
-		{
-			g_logger.log(LOG_ERROR, "POST/PUT request for CGI file: " + full);
-			setStatus(403);
-			return;
-		}
-		if (_requestBody.empty())
-		{
-			g_logger.log(LOG_ERROR, "POST/PUT request without body for file: " + full);
-			setStatus(400); // Bad Request
-			return;
-		}
-		g_logger.log(LOG_INFO, "POST/PUT request for file: " + full);
-		setStatus(postFile(_requestBody, full));
-		return;
-	}
+       if (_method == "POST" || _method == "PUT")
+       {
+	       if (_requestBody.empty())
+	       {
+		       g_logger.log(LOG_ERROR, "POST/PUT request without body for file: " + full);
+		       setStatus(400); // Bad Request
+		       return;
+	       }
+	       // If it's a CGI file, run CGI handler
+	       std::string cgiBin = isCgiFile(loc, full);
+	       if (!cgiBin.empty()) {
+		       std::map<std::string, std::string> envMap;
+		       generateEnvMap(full, envMap);
+		       _cgiHandler = new CgiHandler(cgiBin, full, _requestBody, envMap, loc->_cgiTimeout);
+		       _cgiHandler->execute();
+		       _isCgiComplete = false;
+		       setStatus(200);
+		       return;
+	       }
+	       // Otherwise, treat as file upload
+	       g_logger.log(LOG_INFO, "POST/PUT request for file: " + full);
+	       setStatus(postFile(_requestBody, full));
+	       return;
+       }
 
 	if (!exists || !S_ISREG(st.st_mode))
 	{

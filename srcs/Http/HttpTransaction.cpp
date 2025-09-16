@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpTransaction.cpp                                :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: moutig <moutig@student.42.fr>              +#+  +:+       +#+        */
+/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 18:16:25 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/07/02 21:19:02 by moutig           ###   ########.fr       */
+/*   Updated: 2025/06/29 06:34:09 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -86,6 +86,10 @@ std::string HttpTransaction::getProtocol() const {
 	return _protocol;
 }
 
+t_server *HttpTransaction::getServer() const {
+	return _server;
+}
+
 bool HttpTransaction::isConnectionKeepAlive() const {
 	return _connectionKeepAlive;
 }
@@ -96,8 +100,4 @@ std::string HttpTransaction::getBody() const {
 
 std::map<std::string, std::string> HttpTransaction::getHeaders() const {
 	return _headers;
-}
-
-t_server *HttpTransaction::getServer() const {
-	return _server;
 }

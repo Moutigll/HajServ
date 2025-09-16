@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   ServerManager.cpp                                  :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/03 18:52:01 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/28 10:57:59 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 05:55:38 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,11 +19,11 @@ volatile sig_atomic_t keepRunning = 1;
 
 void signalHandler(int signal)
 {
-    if (signal == SIGINT)
+	if (signal == SIGINT)
 	{
-        std::cout << "\nCtrl+C detected. Exiting main loop...\n";
-        keepRunning = false;
-    }
+		std::cout << "\nCtrl+C detected. Exiting main loop...\n";
+		keepRunning = false;
+	}
 }
 
 ServerManager::ServerManager(void)
@@ -123,7 +123,7 @@ bool	ServerManager::init(const std::vector<t_server> &servers)
 
 
 /*-------------------
-    Main logic loop
+	Main logic loop
 ---------------------*/
 
 Port	*ServerManager::isListeningSocket(int fd) const
@@ -281,37 +281,38 @@ void	ServerManager::handleConnectionEvent(struct epoll_event event)
 		g_logger.log(LOG_WARNING, "Unhandled event on fd " + to_string(fd) + ": " + to_string(event.events));
 }
 
-void	ServerManager::handleEpollInEvent(int fd, std::map<int, Connection *>::iterator &it)
+void ServerManager::handleEpollInEvent(int fd, std::map<int, Connection*>::iterator &it)
 {
-	bool	parseResult = false;
-	ssize_t	bytesRead;
-
-	while (1)
+	bool parseResult = false;
+	while (true)
 	{
-		char	buffer[4096];
-		bytesRead = recv(fd, buffer, sizeof(buffer), 0);
-		buffer[bytesRead] = '\0';
+		char buffer[10 + 1]; // +1 for null terminator
+		ssize_t bytesRead = recv(fd, buffer, 10, 0);
 
-		if (bytesRead > 0 && it->second->getState() != WRITING)
-			parseResult = it->second->parseRequest(buffer);
+		if (bytesRead > 0)
+		{
+			buffer[bytesRead] = '\0';
+			if (it->second->getState() != WRITING)
+				parseResult = it->second->parseRequest(buffer);
+		}
 		else if (bytesRead == 0)
 		{
+			// Connection closed by client
 			g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " closed by peer");
 			closeConnection(fd, it);
 			return;
-		} else {
-			if (errno == EAGAIN || errno == EWOULDBLOCK) // Nothing to read, we can break the loop
-				break;
-			else
-			{
-				g_logger.log(LOG_ERROR, "Error reading from fd " + to_string(fd) + ": " + std::string(strerror(errno)));
-				closeConnection(fd, it);
-				return;
-			}
+		}
+		else // bytesRead < 0, stop reading (no errno check possible)
+		{
+			// Stop reading on error (assuming non-blocking socket)
+			break;
 		}
 	}
-	if (parseResult && it->second->getState() == WRITING) // If the request is complete we enable EPOLLOUT else we continue to read the connection
+
+	if (parseResult && it->second->getState() == WRITING)
+	{
 		updateEpoll(fd, EPOLLOUT | EPOLLRDHUP | EPOLLHUP | EPOLLERR, EPOLL_CTL_MOD);
+	}
 }
 
 void	ServerManager::handleEpollOutEvent(int fd, std::map<int, Connection *>::iterator &con)
@@ -334,15 +335,9 @@ void	ServerManager::handleEpollOutEvent(int fd, std::map<int, Connection *>::ite
 	ssize_t	bytesWritten = send(fd, writeBuffer.data, writeBuffer.size, 0);
 	if (bytesWritten < 0)
 	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-		{
-			g_logger.log(LOG_DEBUG, "EAGAIN or EWOULDBLOCK on fd " + to_string(fd) + ", will retry later");
-			return;
-		} else {
-			g_logger.log(LOG_ERROR, "Error writing to fd " + to_string(fd) + ": " + std::string(strerror(errno)));
-			closeConnection(fd, con);
-			return;
-		}
+		g_logger.log(LOG_ERROR, "Error writing to fd " + to_string(fd) + ": " + std::string(strerror(errno)));
+		closeConnection(fd, con);
+		return;
 	} else if (bytesWritten == 0) {
 		g_logger.log(LOG_DEBUG, "Connection on fd " + to_string(fd) + " closed by peer during write");
 		closeConnection(fd, con);

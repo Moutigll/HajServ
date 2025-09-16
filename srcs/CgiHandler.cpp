@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/26 21:14:48 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 02:01:09 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 07:02:23 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -224,6 +224,7 @@ void	CgiHandler::readFromCgi()
 	
 }
 
+
 bool	CgiHandler::checkTimeout(void)
 {
 	int	ret;
@@ -246,7 +247,7 @@ bool	CgiHandler::checkTimeout(void)
 			_pipeFd = -1;
 			_statusCode = 504;
 			_finished = true;
-
+			_startTime = 0;
 			hasTimedOut = true;
 		}
 		else

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   GetFiles.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: moutig <moutig@student.42.fr>              +#+  +:+       +#+        */
+/*   By: etaquet <etaquet@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/25 02:22:13 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/07/17 20:56:11 by moutig           ###   ########.fr       */
+/*   Updated: 2025/09/16 19:29:05 by etaquet          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,67 +69,77 @@ static bool	isImage(const std::string &filename)
 
 void HttpResponse::generateEnvMap(const std::string &filepath, std::map<std::string, std::string> &envMap)
 {
-	std::vector<std::string> envVec;
+    envMap.clear();
 
-	envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
-	envMap["SERVER_PROTOCOL"] = _protocol;
-	envMap["REQUEST_METHOD"] = _method;
-	envMap["SCRIPT_FILENAME"] = filepath;
-	size_t pos = filepath.find_last_of('/');
-	envMap["SCRIPT_NAME"] = (pos == std::string::npos) ? filepath : filepath.substr(pos + 1);
-	envMap["SERVER_SOFTWARE"] = VERSION;
+    // Standard CGI variables
+    envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
+    envMap["SERVER_PROTOCOL"]   = _protocol;
+    envMap["REQUEST_METHOD"]    = _method;
+    envMap["SCRIPT_FILENAME"]   = filepath;
 
-	if (!_query.empty())
-		envMap["QUERY_STRING"] = _query;
-	else
-		envMap["QUERY_STRING"] = "";
-	
-	envMap["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
-	envMap["CONTENT_LENGTH"] = "0";
-	if (_method == "POST" && !_requestBody.empty()) {
+    size_t pos = filepath.find_last_of('/');
+    envMap["SCRIPT_NAME"] = (pos == std::string::npos) ? filepath : filepath.substr(pos + 1);
+
+    envMap["SERVER_SOFTWARE"] = VERSION;
+
+    envMap["QUERY_STRING"] = _query.empty() ? "" : _query;
+
+    // POST-specific variables
+    if (_method == "POST") {
+        // Content-Type
         if (_requestHeaders.count("Content-Type"))
             envMap["CONTENT_TYPE"] = _requestHeaders["Content-Type"];
+        else
+            envMap["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
+
+        // Content-Length: prefer header, fallback to actual body size
         if (_requestHeaders.count("Content-Length"))
-			envMap["CONTENT_LENGTH"] = _requestHeaders["Content-Length"];
+            envMap["CONTENT_LENGTH"] = _requestHeaders["Content-Length"];
+        else
+            envMap["CONTENT_LENGTH"] = to_string(_requestBody.size());
+    } else {
+        envMap["CONTENT_TYPE"] = "";
+        envMap["CONTENT_LENGTH"] = "0";
     }
 
-	// Additional headers
-	for (std::map<std::string,std::string>::const_iterator it = _requestHeaders.begin();
+    // Additional headers
+    for (std::map<std::string, std::string>::const_iterator it = _requestHeaders.begin();
          it != _requestHeaders.end(); ++it)
     {
         const std::string &key = it->first;
         const std::string &val = it->second;
 
-        if (key == "Cookie")
-		{
+        // Handle cookies separately
+        if (key == "Cookie") {
             envMap["HTTP_COOKIE"] = val;
 
-            size_t pos = 0;
-            while (pos < val.size())
-			{
-                size_t semi = val.find(';', pos);
-                std::string pair = val.substr(pos, (semi==std::string::npos ? std::string::npos : semi-pos));
-                if (!pair.empty() && pair[0]==' ') pair.erase(0,1);
+            size_t start = 0;
+            while (start < val.size()) {
+                size_t semi = val.find(';', start);
+                std::string pair = val.substr(start, (semi == std::string::npos ? std::string::npos : semi - start));
+                if (!pair.empty() && pair[0] == ' ') pair.erase(0, 1);
+
                 size_t eq = pair.find('=');
-                if (eq != std::string::npos)
-				{
+                if (eq != std::string::npos) {
                     std::string cname = pair.substr(0, eq);
-                    std::string cval  = pair.substr(eq+1);
+                    std::string cval  = pair.substr(eq + 1);
                     envMap[cname] = cval;
                 }
+
                 if (semi == std::string::npos) break;
-                pos = semi + 1;
+                start = semi + 1;
             }
             continue;
         }
 
-        // Other headers: HTTP_<NAME>
+        // Convert header names to CGI-style: HTTP_<HEADER_NAME>
         std::string hkey = key;
-        for (size_t i = 0; i < hkey.length(); ++i)
+        for (size_t i = 0; i < hkey.size(); ++i)
             if (hkey[i] == '-') hkey[i] = '_';
         envMap["HTTP_" + hkey] = val;
     }
 }
+
 
 static std::string	uriEncode(const std::string &value)
 {

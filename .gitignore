@@ -6,5 +6,3 @@ server.log
 ressources/scripts/venv
 ressources/scripts/results.csv
 ressources/scripts/siege.png
-hours.cfg
-.gitignore

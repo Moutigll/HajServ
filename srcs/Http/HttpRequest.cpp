@@ -6,7 +6,7 @@
 /*   By: ele-lean <ele-lean@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/20 21:05:28 by ele-lean          #+#    #+#             */
-/*   Updated: 2025/06/29 04:23:14 by ele-lean         ###   ########.fr       */
+/*   Updated: 2025/06/29 06:41:21 by ele-lean         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,7 +81,7 @@ int HttpRequest::parse(const char *buffer)
 		_accum.erase(0, pos + 4); // remove the headers including the last \r\n\r\n
 		_contentLenght = getContentLength(_headers);
 		_parseState = (_contentLenght > 0 ? PS_BODY : PS_DONE); // If Content-Length is 0, we can directly go to DONE state
-		if (_contentLenght > _server->_maxBodySize) {
+		if (_contentLenght > _server->_clientMaxBodySize) {
 			_status = 413;
 			_parseState = PS_ERROR;
 			return -1;
