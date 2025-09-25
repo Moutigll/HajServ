@@ -487,8 +487,7 @@ void HttpResponse::getFile()
 		if (_requestBody.empty())
 		{
 			setStatus(400);
-			_body = "Bad Request: empty POST body\n";
-			construct(); // build headers
+			construct(); // build headers for _response
 			return;
 		}
 
@@ -497,10 +496,8 @@ void HttpResponse::getFile()
 		int status = postFile(_requestBody, full);
 		setStatus(status);
 
-		if (status == 200)
+		if (status == 200 || status == 201)
 			_body = "Form submitted successfully\n";  // must have a response body
-		else
-			_body = _ErrorStatus.getMessage(status);
 
 		construct(); // build headers for _response
 		_isHeadersSent = false;
@@ -607,6 +604,12 @@ void	HttpResponse::handleCgi()
 	{
 		_isCgiComplete = true;
 		output = _cgiHandler->getOutput();
+		if (getContentType(output).empty() && !output.empty())
+		{
+			setStatus(500); // If no Content-Type is provided by the CGI, it's an error
+			buildErrorPage();
+			return;
+		}
 		setStatus(_cgiHandler->getStatusCode());
 		if (!output.empty())
 			extractCgiHeaders(output);
@@ -616,7 +619,7 @@ void	HttpResponse::handleCgi()
 				setStatus(504); // Gateway Timeout
 			else if (_cgiHandler->getStatusCode() == 0)
 				setStatus(500); // Internal Server Error
-			_body = _ErrorStatus.getMessage(_status); // It's overwrite by buildErrorPage() but necessary to not infinately loop in construct()
+			buildErrorPage();
 		}
 	}
 }

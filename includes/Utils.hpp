@@ -150,4 +150,6 @@ size_t giveBodySize(const std::string &value);
  */
 std::string getSecondElem(std::string &line);
 
+std::string getContentType(const std::string &cgiOutput);
+
 #endif

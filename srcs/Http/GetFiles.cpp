@@ -69,75 +69,78 @@ static bool	isImage(const std::string &filename)
 
 void HttpResponse::generateEnvMap(const std::string &filepath, std::map<std::string, std::string> &envMap)
 {
-    envMap.clear();
+	envMap.clear();
 
-    // Standard CGI variables
-    envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
-    envMap["SERVER_PROTOCOL"]   = _protocol;
-    envMap["REQUEST_METHOD"]    = _method;
-    envMap["SCRIPT_FILENAME"]   = filepath;
+	// Standard CGI variables
+	envMap["GATEWAY_INTERFACE"] = "CGI/1.1";
+	envMap["SERVER_PROTOCOL"]   = _protocol;
+	envMap["REQUEST_METHOD"]    = _method;
+	envMap["SCRIPT_FILENAME"]   = filepath;
 
-    size_t pos = filepath.find_last_of('/');
-    envMap["SCRIPT_NAME"] = (pos == std::string::npos) ? filepath : filepath.substr(pos + 1);
+	size_t pos = filepath.find_last_of('/');
+	envMap["SCRIPT_NAME"] = (pos == std::string::npos) ? filepath : filepath.substr(pos + 1);
 
-    envMap["SERVER_SOFTWARE"] = VERSION;
+	envMap["SERVER_SOFTWARE"] = VERSION;
 
-    envMap["QUERY_STRING"] = _query.empty() ? "" : _query;
+	envMap["QUERY_STRING"] = _query.empty() ? "" : _query;
 
-    // POST-specific variables
-    if (_method == "POST") {
-        // Content-Type
-        if (_requestHeaders.count("Content-Type"))
-            envMap["CONTENT_TYPE"] = _requestHeaders["Content-Type"];
-        else
-            envMap["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
+	// POST-specific variables
+	if (_method == "POST")
+	{
+		// Content-Type
+		if (_requestHeaders.count("Content-Type"))
+			envMap["CONTENT_TYPE"] = _requestHeaders["Content-Type"];
+		else
+			envMap["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
 
-        // Content-Length: prefer header, fallback to actual body size
-        if (_requestHeaders.count("Content-Length"))
-            envMap["CONTENT_LENGTH"] = _requestHeaders["Content-Length"];
-        else
-            envMap["CONTENT_LENGTH"] = to_string(_requestBody.size());
-    } else {
-        envMap["CONTENT_TYPE"] = "";
-        envMap["CONTENT_LENGTH"] = "0";
-    }
+		// Content-Length: prefer header, fallback to actual body size
+		if (_requestHeaders.count("Content-Length"))
+			envMap["CONTENT_LENGTH"] = _requestHeaders["Content-Length"];
+		else
+			envMap["CONTENT_LENGTH"] = to_string(_requestBody.size());
+	}
+	else
+	{
+		envMap["CONTENT_TYPE"] = "";
+		envMap["CONTENT_LENGTH"] = "0";
+	}
 
-    // Additional headers
-    for (std::map<std::string, std::string>::const_iterator it = _requestHeaders.begin();
-         it != _requestHeaders.end(); ++it)
-    {
-        const std::string &key = it->first;
-        const std::string &val = it->second;
+	// Additional headers
+	for (std::map<std::string, std::string>::const_iterator it = _requestHeaders.begin();
+		 it != _requestHeaders.end(); ++it)
+	{
+		const std::string &key = it->first;
+		const std::string &val = it->second;
 
-        // Handle cookies separately
-        if (key == "Cookie") {
-            envMap["HTTP_COOKIE"] = val;
+		// Handle cookies separately
+		if (key == "Cookie") {
+			envMap["HTTP_COOKIE"] = val;
 
-            size_t start = 0;
-            while (start < val.size()) {
-                size_t semi = val.find(';', start);
-                std::string pair = val.substr(start, (semi == std::string::npos ? std::string::npos : semi - start));
-                if (!pair.empty() && pair[0] == ' ') pair.erase(0, 1);
+			size_t start = 0;
+			while (start < val.size()) {
+				size_t semi = val.find(';', start);
+				std::string pair = val.substr(start, (semi == std::string::npos ? std::string::npos : semi - start));
+				if (!pair.empty() && pair[0] == ' ') pair.erase(0, 1);
 
-                size_t eq = pair.find('=');
-                if (eq != std::string::npos) {
-                    std::string cname = pair.substr(0, eq);
-                    std::string cval  = pair.substr(eq + 1);
-                    envMap[cname] = cval;
-                }
+				size_t eq = pair.find('=');
+				if (eq != std::string::npos) {
+					std::string cname = pair.substr(0, eq);
+					std::string cval  = pair.substr(eq + 1);
+					envMap[cname] = cval;
+				}
 
-                if (semi == std::string::npos) break;
-                start = semi + 1;
-            }
-            continue;
-        }
+				if (semi == std::string::npos) break;
+				start = semi + 1;
+			}
+			continue;
+		}
 
-        // Convert header names to CGI-style: HTTP_<HEADER_NAME>
-        std::string hkey = key;
-        for (size_t i = 0; i < hkey.size(); ++i)
-            if (hkey[i] == '-') hkey[i] = '_';
-        envMap["HTTP_" + hkey] = val;
-    }
+		// Convert header names to CGI-style: HTTP_<HEADER_NAME>
+		std::string hkey = key;
+		for (size_t i = 0; i < hkey.size(); ++i)
+			if (hkey[i] == '-') hkey[i] = '_';
+		envMap["HTTP_" + hkey] = val;
+	}
 }
 
 
@@ -278,7 +281,6 @@ int postFile(const std::string &body, const std::string &target_path)
 
 	if (stat(target_path.c_str(), &st) == 0)
 		return 409; // Conflict (file already exists)
-
 
 	std::ofstream out(target_path.c_str(), std::ios::binary);
 	if (!out.is_open())

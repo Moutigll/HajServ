@@ -98,3 +98,22 @@ std::string getSecondElem(std::string &line)
 	}
 	return ("");
 }
+
+std::string getContentType(const std::string &cgiOutput)
+{
+    const std::string key = "Content-Type:";
+    size_t pos = cgiOutput.find(key);
+    if (pos == std::string::npos)
+        return "";
+
+    pos += key.size();
+
+    while (pos < cgiOutput.size() && (cgiOutput[pos] == ' ' || cgiOutput[pos] == '\t'))
+        ++pos;
+
+    size_t end = cgiOutput.find_first_of("\r\n", pos);
+    if (end == std::string::npos)
+        end = cgiOutput.size();
+
+    return cgiOutput.substr(pos, end - pos);
+}

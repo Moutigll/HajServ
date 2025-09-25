@@ -10,6 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
+#include <csignal>
 #include <iostream>
 
 #include "../includes/Logger.hpp"
@@ -19,7 +20,7 @@ volatile sig_atomic_t keepRunning = 1;
 
 void signalHandler(int signal)
 {
-	if (signal == SIGINT)
+	if (signal == SIGINT || signal == SIGQUIT)
 	{
 		std::cout << "\nCtrl+C detected. Exiting main loop...\n";
 		keepRunning = false;
@@ -143,7 +144,8 @@ void	ServerManager::start(void)
 	int					i;
 
 	std::signal(SIGINT, signalHandler);
-	
+	std::signal(SIGQUIT, signalHandler);
+
 	g_logger.log(LOG_INFO, "Server started, waiting for events...");
 
 	while (keepRunning)

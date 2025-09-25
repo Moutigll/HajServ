@@ -51,7 +51,6 @@ def show_thank_you(name, email, message):
         <p>We have received your message:</p>
         <blockquote>{message}</blockquote>
         <p>We will contact you at: {email}</p>
-        <p><a href="">Back to form</a></p>
     </body>
     </html>
     """)
