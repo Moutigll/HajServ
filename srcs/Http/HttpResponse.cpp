@@ -14,6 +14,7 @@
 #include "../../includes/Logger.hpp"
 #include "../../includes/Http/HttpResponse.hpp"
 
+
 HttpResponse::HttpResponse(const t_server &server)
 	: HttpTransaction(),
 	  _server(server),
@@ -439,7 +440,31 @@ void HttpResponse::getFile()
 	if (_method == "DELETE")
 	{
 		g_logger.log(LOG_INFO, "DELETE request for file: " + full);
-		setStatus(deleteFile(full));
+
+		int status = deleteFile(full);
+		setStatus(status);
+
+		// Build body for response
+		if (status == 200)
+			_body = "File deleted successfully\n";
+		else if (status == 204)
+			_body = "";
+		else
+			_body = _ErrorStatus.getMessage(status); // <-- error message
+
+		// Build headers only, skip file headers
+		_response.clear(); // make sure we start fresh
+		_isHeadersSent = false;
+		_isComplete = false;
+
+		// Construct HTTP response headers manually
+		_response += _protocol + " " + to_string(_status) + " " + _ErrorStatus.getMessage(_status) + "\r\n";
+		_response += "Server: " + VERSION + "\r\n";
+		_response += "Content-Length: " + to_string(_body.size()) + "\r\n";
+		_response += "Content-Type: text/plain\r\n";
+		_response += "Connection: " + std::string(_connectionKeepAlive ? "keep-alive" : "close") + "\r\n\r\n";
+
+		g_logger.log(LOG_INFO, "DELETE response ready for sendResponse()");
 		return;
 	}
 
@@ -457,30 +482,32 @@ void HttpResponse::getFile()
 		return;
 	}
 
-       if (_method == "POST" || _method == "PUT")
-       {
-	       if (_requestBody.empty())
-	       {
-		       g_logger.log(LOG_ERROR, "POST/PUT request without body for file: " + full);
-		       setStatus(400); // Bad Request
-		       return;
-	       }
-	       // If it's a CGI file, run CGI handler
-	       std::string cgiBin = isCgiFile(loc, full);
-	       if (!cgiBin.empty()) {
-		       std::map<std::string, std::string> envMap;
-		       generateEnvMap(full, envMap);
-		       _cgiHandler = new CgiHandler(cgiBin, full, _requestBody, envMap, loc->_cgiTimeout);
-		       _cgiHandler->execute();
-		       _isCgiComplete = false;
-		       setStatus(200);
-		       return;
-	       }
-	       // Otherwise, treat as file upload
-	       g_logger.log(LOG_INFO, "POST/PUT request for file: " + full);
-	       setStatus(postFile(_requestBody, full));
-	       return;
-       }
+    if (_method == "POST" || _method == "PUT")
+	{
+		if (_requestBody.empty())
+		{
+			setStatus(400);
+			_body = "Bad Request: empty POST body\n";
+			construct(); // build headers
+			return;
+		}
+
+		g_logger.log(LOG_INFO, "POST request to file: " + full);
+
+		int status = postFile(_requestBody, full);
+		setStatus(status);
+
+		if (status == 200)
+			_body = "Form submitted successfully\n";  // must have a response body
+		else
+			_body = _ErrorStatus.getMessage(status);
+
+		construct(); // build headers for _response
+		_isHeadersSent = false;
+		_isComplete = false;
+
+		return;
+	}
 
 	if (!exists || !S_ISREG(st.st_mode))
 	{

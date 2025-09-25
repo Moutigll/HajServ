@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DELETE /trash Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    input[type=text] { width: 300px; padding: 6px; }
+    button { padding: 6px 12px; margin-left: 10px; }
+    pre { margin-top: 20px; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h2>Delete file from /trash/</h2>
+  <label for="file">File to delete (relative to /trash/):</label><br>
+  <input type="text" id="file" placeholder="a" required>
+  <button onclick="sendDelete()">Delete</button>
+
+  <pre id="result"></pre>
+
+  <script>
+    async function sendDelete() {
+      const file = document.getElementById("file").value.trim();
+      if (!file) { alert("Enter a file name!"); return; }
+
+      const url = "/trash/" + encodeURIComponent(file);
+
+      try {
+        const res = await fetch(url, { method: "DELETE" });
+        const text = await res.text();
+        document.getElementById("result").textContent =
+          "Status: " + res.status + " " + res.statusText + "\\n\\n" + text;
+      } catch (err) {
+        document.getElementById("result").textContent = "Error: " + err;
+      }
+    }
+  </script>
+</body>
+</html>

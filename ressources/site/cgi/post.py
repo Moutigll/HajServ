@@ -6,7 +6,7 @@ import os
 
 cgitb.enable()  # Enable debugging
 
-FILE_PATH = "messages.txt"
+FILE_PATH = "../user-data/post"
 
 def save_message(name, email, message):
     with open(FILE_PATH, "a") as f:
