@@ -499,7 +499,7 @@ void HttpResponse::getFile()
 		if (status == 200 || status == 201)
 			_body = "Form submitted successfully\n";  // must have a response body
 
-		construct(); // build headers for _response
+		// construct(); // build headers for _response
 		_isHeadersSent = false;
 		_isComplete = false;
 
