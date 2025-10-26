@@ -4,7 +4,8 @@ MODULES_DIR	= $(SRC_DIR)modules/
 SERVER_DIR	= $(SRC_DIR)server/
 
 # Core library sources
-SRC_CORE	= 
+SRC_CORE	= \
+	$(CORE_DIR)test.c
 
 # Modules (optional)
 SRC_MODULES	= 
@@ -12,3 +13,14 @@ SRC_MODULES	=
 # Server executable sources
 SRC_SERVER	= \
 	$(SERVER_DIR)main.c
+
+
+
+TEST_DIR	= tests/
+INTEG_DIR	= $(TEST_DIR)integration/
+UNIT_DIR	= $(TEST_DIR)unit/
+
+SRC_INTEG_TESTS	= 
+
+SRC_UNIT_TESTS	= \
+	$(UNIT_DIR)main.c
