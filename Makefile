@@ -77,7 +77,9 @@ clean:
 # Fclean = clean + binaries + coverage artifacts
 fclean: clean
 	rm -f $(LIB_NAME) $(NAME) $(TEST_BIN)
-	rm -f *.gcda *.gcno *.gcov
+	find $(OBJ_DIR) -name '*.gcda' -delete
+	find $(OBJ_DIR) -name '*.gcno' -delete
+	find $(OBJ_DIR) -name '*.gcov' -delete
 
 # Rebuild
 re: fclean all
