@@ -1,0 +1,4 @@
+build/
+hajserv
+libhajserv.a
+obj/
