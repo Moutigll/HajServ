@@ -5,7 +5,8 @@ SERVER_DIR	= $(SRC_DIR)server/
 
 # Core library sources
 SRC_CORE	= \
-	$(CORE_DIR)test.c
+	$(CORE_DIR)sockets/create.c \
+	$(CORE_DIR)server.c
 
 # Modules (optional)
 SRC_MODULES	= 

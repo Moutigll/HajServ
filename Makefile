@@ -6,7 +6,7 @@ LIB_NAME = libhajserv.a
 TEST_BIN = $(OBJ_DIR)/tests/unit.out
 
 CC = gcc
-STRICT_FLAGS = -Wall -Wextra -Werror
+STRICT_FLAGS = -Wall -Wextra -Werror -Wno-unused-function -Wno-unused-variable -pedantic
 CFLAGS = -Iinclude
 COVERAGE_FLAGS = -fprofile-arcs -ftest-coverage -O0
 TEST_FLAGS = -Wall -Wextra -Wno-unused-function -Wno-unused-variable -Iinclude
